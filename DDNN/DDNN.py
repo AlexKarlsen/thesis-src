@@ -17,7 +17,7 @@ class DDNN(nn.Module):
         self.device_models = nn.ModuleList(self.device_models)
 
         cloud_input_channels = 1280*num_devices
-        self.cloud_model = models.resnet50(pretrained=False)
+        self.cloud_model = models.resnet152(pretrained=False)
         # changing input layer to accept the additional channels
         self.cloud_model.conv1 = nn.Conv2d(cloud_input_channels, 64, kernel_size=7, stride=2, padding=3,bias=False)
         # removing fc
