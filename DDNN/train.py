@@ -71,7 +71,9 @@ def train(model, train_loader, optimizer, num_devices):
 
     train_data = { 'Edge train loss':  model_losses[-1].item() / N }
 
-    return model_losses
+    losses = [i.item() / N for i in model_losses]
+    scores = [i / N for i in num_correct]
+    return losses, scores
 
  
 
@@ -105,7 +107,9 @@ def test(model, test_loader, num_devices):
     print('Test  Loss:: {}, cloud-{:.4f}'.format(loss_str, model_losses[-1] / N))
     print('Test  Acc.:: {}, cloud-{:.4f}%'.format(acc_str, 100. * (num_correct[-1] / N)))
 
-    return model_losses, num_correct
+    losses = [i / N for i in model_losses]
+    scores = [i / N for i in num_correct]
+    return losses, scores
 
 
 def train_model(model, model_path, train_loader, test_loader, lr, epochs, num_devices):
@@ -114,15 +118,22 @@ def train_model(model, model_path, train_loader, test_loader, lr, epochs, num_de
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs)
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
 
-    for epoch in range(1, epochs):
+    for epoch in range(1, epochs+1):
         print('[Epoch {}/{}]'.format(epoch,epochs))
-        train(model, train_loader, optimizer, num_devices)
-        test(model, test_loader, num_devices)
+        train_loss, train_acc = train(model, train_loader, optimizer, num_devices)
+        test_loss, test_acc = test(model, test_loader, num_devices)
+
+        data = train_loss + train_acc + test_loss + test_acc
+        data_dict = dict(zip(cols, data))
         torch.save(model, model_path + 'ddnn.pth')
         torch.save(model.cloud_model, model_path + 'edge.pth')
         for i, device in enumerate(model.device_models):
             torch.save(device, model_path + 'dev' + str(i) + '.pth')
         scheduler.step()
+
+    
+
+    return data_dict
 
 if __name__ == '__main__':
     # Training settings
@@ -158,14 +169,31 @@ if __name__ == '__main__':
     in_channels = x.shape[2]
     out_channels = len(train_dataset.classes)
 
+    continue_training = True
+    model_path = args.output
+    
     # construct DDNN
     model = net(in_channels, out_channels, args.n_devices)
+
+    #if continue_training:
+    #    model = torch.load(model_path + 'ddnn.pth')
 
     # load on GPU
     model = model.to(device)
 
     # Data logging
-    df = pd.DataFrame(columns=['Edge train loss'])
+    cols = []
+    for v in ['train', 'test']:
+        for u in ['loss', 'accuracy']:
+            cols +=  ['dev-'+ str(index)+ '-' + v + '-' + u  for index in range(5)]
+            cols += ['edge-' + v + '-' + u] 
+
+    df = pd.DataFrame(columns=cols)
 
     # Run training
-    train_model(model, args.output, train_loader, test_loader, args.lr, args.epochs, args.n_devices)
+    data = train_model(model, args.output, train_loader, test_loader, args.lr, args.epochs, args.n_devices)
+
+    print('Training completed')
+    
+    df = df.append(data, ignore_index=True)
+    df.to_csv('logging/train_data_' + str(time.time()) + '.csv')
