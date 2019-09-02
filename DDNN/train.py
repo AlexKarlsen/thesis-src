@@ -76,8 +76,6 @@ def train(model, train_loader, optimizer, num_devices):
     scores = [i / N for i in num_correct]
     return losses, scores
 
- 
-
 def test(model, test_loader, num_devices):
     model.eval()
     model_losses = [0]*(num_devices + 1)
@@ -86,14 +84,22 @@ def test(model, test_loader, num_devices):
     # start timing inference
     time_start = time.time()
 
+    # iterate test data
     for data, target in tqdm(test_loader, leave=False):
         data, target = data.cuda(), target.cuda()
         predictions = model(data)
+
+        # for all predictions
         for i, prediction in enumerate(predictions):
+            # determine loss
             loss = F.cross_entropy(prediction, target, reduction='sum').item()
+            # get the most certain prediction
             pred = prediction.data.max(1, keepdim=True)[1]
+            # correct prediction or not?
             correct = (pred.view(-1) == target.view(-1)).long().sum().item()
+            # add to correct counter
             num_correct[i] += correct
+            # add to loss counter
             model_losses[i] += loss
 
     # end timing training
@@ -112,7 +118,6 @@ def test(model, test_loader, num_devices):
     losses = [i / N for i in model_losses]
     scores = [i / N for i in num_correct]
     return losses, scores
-
 
 def train_model(model, model_path, train_loader, test_loader, lr, epochs, num_devices):
     #ps = filter(lambda x: x.requires_grad, model.parameters())
@@ -161,6 +166,8 @@ if __name__ == '__main__':
                         help='output directory')
     parser.add_argument('--n_devices', default=5,
                         help='number of devices')
+    parser.add_argument('--continue_training', default=True,
+                        help='continue training from checkpoint')
 
     args = parser.parse_args()
 
@@ -172,20 +179,22 @@ if __name__ == '__main__':
     if device == 'cuda':
         torch.cuda.manual_seed(args.seed)
 
-
+    # get input data
     train_dataset, train_loader, test_dataset, test_loader = datasets.get_dataset(args.dataset_root, args.dataset, args.batch_size, device)
+
+    # get channels from input data
     x, _ = train_loader.__iter__().next()
     in_channels = x.shape[2]
     out_channels = len(train_dataset.classes)
 
-    continue_training = True
+    # path to saved model 
     model_path = args.output
     
     # construct DDNN
     model = net(in_channels, out_channels, args.n_devices)
 
-    #if continue_training:
-    #    model = torch.load(model_path + 'ddnn.pth')
+    if args.continue_training:
+        model = torch.load(model_path + 'ddnn.pth')
 
     # load on GPU
     model = model.to(device)
