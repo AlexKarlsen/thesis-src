@@ -71,6 +71,7 @@ def train(model, train_loader, optimizer, num_devices):
 
     train_data = { 'Edge train loss':  model_losses[-1].item() / N }
 
+    # return losses and scores for visualization
     losses = [i.item() / N for i in model_losses]
     scores = [i / N for i in num_correct]
     return losses, scores
@@ -107,6 +108,7 @@ def test(model, test_loader, num_devices):
     print('Test  Loss:: {}, cloud-{:.4f}'.format(loss_str, model_losses[-1] / N))
     print('Test  Acc.:: {}, cloud-{:.4f}%'.format(acc_str, 100. * (num_correct[-1] / N)))
 
+    # return losses and scores for visualization
     losses = [i / N for i in model_losses]
     scores = [i / N for i in num_correct]
     return losses, scores
@@ -118,22 +120,29 @@ def train_model(model, model_path, train_loader, test_loader, lr, epochs, num_de
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs)
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
 
+    data_arr = []
+
     for epoch in range(1, epochs+1):
         print('[Epoch {}/{}]'.format(epoch,epochs))
+
+        # Run train and test and get data
         train_loss, train_acc = train(model, train_loader, optimizer, num_devices)
         test_loss, test_acc = test(model, test_loader, num_devices)
 
+        # format training and testing data
         data = train_loss + train_acc + test_loss + test_acc
         data_dict = dict(zip(cols, data))
+        data_arr.append(data_dict)
+
+        # save all the models for inference
         torch.save(model, model_path + 'ddnn.pth')
         torch.save(model.cloud_model, model_path + 'edge.pth')
         for i, device in enumerate(model.device_models):
             torch.save(device, model_path + 'dev' + str(i) + '.pth')
+
         scheduler.step()
 
-    
-
-    return data_dict
+    return data_arr
 
 if __name__ == '__main__':
     # Training settings
@@ -185,9 +194,8 @@ if __name__ == '__main__':
     cols = []
     for v in ['train', 'test']:
         for u in ['loss', 'accuracy']:
-            cols +=  ['dev-'+ str(index)+ '-' + v + '-' + u  for index in range(5)]
+            cols +=  ['dev-'+ str(index)+ '-' + v + '-' + u  for index in range(args.n_devices)]
             cols += ['edge-' + v + '-' + u] 
-
     df = pd.DataFrame(columns=cols)
 
     # Run training
