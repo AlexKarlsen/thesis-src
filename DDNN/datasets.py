@@ -5,6 +5,9 @@ import torch
 from util import Partition
 import numpy as np
 
+from imgaug import augmenters as iaa
+import imgaug as ia
+
 def get_dataset(dataset_root, dataset, batch_size, is_cuda=True):
     if dataset == 'voc':
         train, test, train_loader, test_loader = get_voc(dataset_root, batch_size, is_cuda)
@@ -13,15 +16,30 @@ def get_dataset(dataset_root, dataset, batch_size, is_cuda=True):
 
     return train, train_loader, test, test_loader
 
+class ImgAugTransform:
+  def __init__(self):
+    self.aug = iaa.Sequential([
+        iaa.Resize((224, 224)),
+        iaa.Sometimes(0.25, iaa.GaussianBlur(sigma=(0, 3.0))),
+        iaa.Fliplr(0.5),
+        iaa.Affine(rotate=(-20, 20), mode='symmetric'),
+        iaa.Sometimes(0.25,
+                      iaa.OneOf([iaa.Dropout(p=(0, 0.1)),
+                                 iaa.CoarseDropout(0.1, size_percent=0.5)])),
+        iaa.AddToHueAndSaturation(value=(-10, 10), per_channel=True)
+    ])
+      
+  def __call__(self, img):
+    img = np.array(img)
+    return self.aug.augment_image(img)
 
 def get_voc(dataset_root, batch_size, is_cuda=True, valid_size=.2):
-    kwargs = {'num_workers': 4, 'pin_memory': True} if is_cuda else {}
+    kwargs = {'num_workers': 8, 'pin_memory': True} if is_cuda else {}
     data_dir = 'voc'
 
     data_transforms = {
         'train': transforms.Compose([
-            transforms.RandomResizedCrop(224),
-            transforms.RandomHorizontalFlip(),
+            ImgAugTransform(),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
