@@ -16,12 +16,12 @@ class DDNN(nn.Module):
             self.device_models.append(DeviceModel(in_channels, out_channels))
         self.device_models = nn.ModuleList(self.device_models)
 
-        cloud_input_channels = 1280*num_devices
-        self.cloud_model = models.resnet152(pretrained=False)
+        edge_input_channels = 1280*num_devices
+        self.edge_model = models.resnet50(pretrained=False)
         # changing input layer to accept the additional channels
-        self.cloud_model.conv1 = nn.Conv2d(cloud_input_channels, 64, kernel_size=7, stride=2, padding=3,bias=False)
+        self.edge_model.conv1 = nn.Conv2d(edge_input_channels, 64, kernel_size=7, stride=2, padding=3,bias=False)
         # removing fc
-        self.cloud_model = nn.Sequential(*(list(self.cloud_model.children())[:-1]))
+        self.edge_model = nn.Sequential(*(list(self.edge_model.children())[:-1]))
         self.pool = nn.AdaptiveAvgPool2d(1)
         self.classifier = nn.Linear(2048, out_channels)
 
@@ -38,8 +38,8 @@ class DDNN(nn.Module):
         # concatenating the features into a single tensor
         h = torch.cat(hs, dim=1)
 
-        # run cloud network
-        h = self.cloud_model(h)
+        # run edge network
+        h = self.edge_model(h)
         h = self.pool(h)
         prediction = self.classifier(h.view(B, -1))
 
