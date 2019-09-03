@@ -40,7 +40,7 @@ def train(model, train_loader, optimizer, num_devices):
         # run model on input
         predictions = model(data)
         
-        # for each prediction (num_devices + 1 for cloud), add to loss
+        # for each prediction (num_devices + 1 for edge), add to loss
         for i, prediction in enumerate(predictions):
             # compute the loss
             loss = F.cross_entropy(prediction, target)
@@ -57,24 +57,25 @@ def train(model, train_loader, optimizer, num_devices):
         total_loss.backward()
         optimizer.step()
 
-    # end timing training
-    time_end = time.time()
-
     N = len(train_loader.dataset)
-    loss_str = ', '.join(['dev-{}: {:.4f}'.format(i, loss.item() / N)
-                        for i, loss in enumerate(model_losses[:-1])])
-    acc_str = ', '.join(['dev-{}: {:.4f}%'.format(i, 100. * (correct / N))
-                        for i, correct in enumerate(num_correct[:-1])])
-    print('Training elapsed in {:0f}s'.format(time_end-time_start))                        
-    print('Train Loss:: {}, cloud-{:.4f}'.format(loss_str, model_losses[-1].item() / N))
-    print('Train  Acc.:: {}, cloud-{:.4f}%'.format(acc_str, 100. * (num_correct[-1] / N)))
-
-    train_data = { 'Edge train loss':  model_losses[-1].item() / N }
 
     # return losses and scores for visualization
-    losses = [i.item() / N for i in model_losses]
+    model_losses = [i.item() / N for i in model_losses]
     scores = [i / N for i in num_correct]
-    return losses, scores
+    print('-' * 30)
+    loss_str = ', '.join(['dev-{}: {:.4f}'.format(i, loss)
+                        for i, loss in enumerate(model_losses[:-1])])
+    acc_str = ', '.join(['dev-{}: {:.4f}'.format(i, correct)
+                        for i, correct in enumerate(scores[:-1])])
+    print('Train Time: {:0f}s'.format(time.time()-time_start))                        
+    print('Train Loss: [{}, edge-{:.4f}]'.format(loss_str, model_losses[-1]))
+    print('Train Acc.: [{}, edge-{:.4f}]'.format(acc_str, scores[-1]))
+    print('-' * 30)
+
+    #train_data = { 'Edge train loss':  model_losses[-1]}
+
+    
+    return model_losses, scores
 
 def test(model, test_loader, num_devices):
     model.eval()
@@ -84,51 +85,65 @@ def test(model, test_loader, num_devices):
     # start timing inference
     time_start = time.time()
 
-    # iterate test data
-    for data, target in tqdm(test_loader, leave=False):
-        data, target = data.cuda(), target.cuda()
-        predictions = model(data)
+    # do not compute gradient for testing. 
+    # if not we run out of memory
+    with torch.no_grad():
+        # iterate test data
+        for data, target in tqdm(test_loader, leave=False):
+            data, target = data.cuda(), target.cuda()
+            predictions = model(data)
 
-        # for all predictions
-        for i, prediction in enumerate(predictions):
-            # determine loss
-            loss = F.cross_entropy(prediction, target, reduction='sum').item()
-            # get the most certain prediction
-            pred = prediction.data.max(1, keepdim=True)[1]
-            # correct prediction or not?
-            correct = (pred.view(-1) == target.view(-1)).long().sum().item()
-            # add to correct counter
-            num_correct[i] += correct
-            # add to loss counter
-            model_losses[i] += loss
+            # for all predictions
+            for i, prediction in enumerate(predictions):
+                # determine loss
+                loss = F.cross_entropy(prediction, target)
+                # get the most certain prediction
+                pred = prediction.data.max(1, keepdim=True)[1]
+                # correct prediction or not?
+                correct = (pred.view(-1) == target.view(-1)).long().sum().item()
+                # add to correct counter
+                num_correct[i] += correct
+                # add to loss counter
+                model_losses[i] += loss.sum()*len(target)
 
     # end timing training
     time_end = time.time()
 
     N = len(test_loader.dataset)
-    loss_str = ', '.join(['dev-{}: {:.4f}'.format(i, loss / N)
-                        for i, loss in enumerate(model_losses[:-1])])
-    acc_str = ', '.join(['dev-{}: {:.4f}%'.format(i, 100. * (correct / N))
-                        for i, correct in enumerate(num_correct[:-1])])
-    print('Inference elapsed in {:0f}s'.format(time_end-time_start))
-    print('Test  Loss:: {}, cloud-{:.4f}'.format(loss_str, model_losses[-1] / N))
-    print('Test  Acc.:: {}, cloud-{:.4f}%'.format(acc_str, 100. * (num_correct[-1] / N)))
-
     # return losses and scores for visualization
-    losses = [i / N for i in model_losses]
+    model_losses = [i.item() / N for i in model_losses]
     scores = [i / N for i in num_correct]
-    return losses, scores
 
-def train_model(model, model_path, train_loader, test_loader, lr, epochs, num_devices):
+    loss_str = ', '.join(['dev-{}: {:.4f}'.format(i, loss)
+                        for i, loss in enumerate(model_losses[:-1])])
+    acc_str = ', '.join(['dev-{}: {:.4f}%'.format(i, score)
+                        for i, score in enumerate(scores[:-1])])
+    print('Test time: {:0f}s'.format(time_end-time_start))
+    print('Test Loss: [{}, edge-{:.4f}]'.format(loss_str, model_losses[-1]))
+    print('Test Acc.: [{}, edge-{:.4f}]'.format(acc_str, scores[-1]))
+    print('-' * 30)
+
+    
+    return model_losses, scores
+
+def train_model(model, model_path, train_loader, test_loader, lr, epochs, num_devices, rough_tune):
     #ps = filter(lambda x: x.requires_grad, model.parameters())
-    optimizer = optim.Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.999), eps=1e-8)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs)
+    optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999), eps=1e-8)
+    # rough-tuning
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=rough_tune, gamma=0.1)
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
 
     data_arr = []
 
     for epoch in range(1, epochs+1):
         print('[Epoch {}/{}]'.format(epoch,epochs))
+
+        # swicth to cosine annealing with much lower lr
+        if epoch == rough_tune + 1:
+            lr = scheduler.get_lr()
+            print('Switching to cosine annealing scheduler with much lower learning rate, lr={}'.format(lr))
+            optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999), eps=1e-8)
+            scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs)
 
         # Run train and test and get data
         train_loss, train_acc = train(model, train_loader, optimizer, num_devices)
@@ -141,7 +156,7 @@ def train_model(model, model_path, train_loader, test_loader, lr, epochs, num_de
 
         # save all the models for inference
         torch.save(model, model_path + 'ddnn.pth')
-        torch.save(model.cloud_model, model_path + 'edge.pth')
+        torch.save(model.edge_model, model_path + 'edge.pth')
         for i, device in enumerate(model.device_models):
             torch.save(device, model_path + 'dev' + str(i) + '.pth')
 
@@ -157,8 +172,8 @@ if __name__ == '__main__':
                         help='input batch size for training (default: 32)')
     parser.add_argument('--epochs', type=int, default=50, metavar='N',
                         help='number of epochs to train (default: 50)')
-    parser.add_argument('--lr', type=float, default=1e-4, metavar='LR',
-                        help='learning rate (default: 1e-4)')
+    parser.add_argument('--lr', type=float, default=1e-3, metavar='LR',
+                        help='learning rate (default: 1e-3)')
     parser.add_argument('--dataset', default='voc', help='dataset name')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
@@ -166,8 +181,10 @@ if __name__ == '__main__':
                         help='output directory')
     parser.add_argument('--n_devices', default=5,
                         help='number of devices')
-    parser.add_argument('--continue_training', default=True,
+    parser.add_argument('--continue_training', action='store_true',
                         help='continue training from checkpoint')
+    parser.add_argument('--rough_tune', default=5,
+                        help='rough tuning for n epochs')
 
     args = parser.parse_args()
 
@@ -176,7 +193,7 @@ if __name__ == '__main__':
 
     # seed???
     torch.manual_seed(args.seed)
-    if device == 'cuda':
+    if device == 'cuda:0':
         torch.cuda.manual_seed(args.seed)
 
     # get input data
@@ -208,9 +225,20 @@ if __name__ == '__main__':
     df = pd.DataFrame(columns=cols)
 
     # Run training
-    data = train_model(model, args.output, train_loader, test_loader, args.lr, args.epochs, args.n_devices)
+    print()
+    print('Training staring: [dataset: {}, number of epochs: {}, batch-size: {}, initial learning rate: {}, number of devices {}]'.format(
+        args.dataset,
+        args.epochs,
+        args.batch_size,
+        args.lr,
+        args.n_devices
+    ))
+    print('-'*30)
+    time_since = time.time()
+    data = train_model(model, args.output, train_loader, test_loader, args.lr, args.epochs, args.n_devices, args.rough_tune)
 
-    print('Training completed')
+    
+    print('Training completed in {}'.format(time_since-time.time()))
     
     df = df.append(data, ignore_index=True)
     df.to_csv('logging/train_data_' + str(time.time()) + '.csv')
