@@ -62,15 +62,15 @@ def train(model, train_loader, optimizer, num_devices):
     # return losses and scores for visualization
     model_losses = [i.item() / N for i in model_losses]
     scores = [i / N for i in num_correct]
-    print('-' * 30)
+    print('-' * 90)
     loss_str = ', '.join(['dev-{}: {:.4f}'.format(i, loss)
                         for i, loss in enumerate(model_losses[:-1])])
     acc_str = ', '.join(['dev-{}: {:.4f}'.format(i, correct)
                         for i, correct in enumerate(scores[:-1])])
     print('Train Time: {:0f}s'.format(time.time()-time_start))                        
-    print('Train Loss: [{}, edge-{:.4f}]'.format(loss_str, model_losses[-1]))
-    print('Train Acc.: [{}, edge-{:.4f}]'.format(acc_str, scores[-1]))
-    print('-' * 30)
+    print('Train Loss: [{}, edge: {:.4f}]'.format(loss_str, model_losses[-1]))
+    print('Train Acc.: [{}, edge: {:.4f}]'.format(acc_str, scores[-1]))
+    print('-' * 90)
 
     #train_data = { 'Edge train loss':  model_losses[-1]}
 
@@ -116,12 +116,12 @@ def test(model, test_loader, num_devices):
 
     loss_str = ', '.join(['dev-{}: {:.4f}'.format(i, loss)
                         for i, loss in enumerate(model_losses[:-1])])
-    acc_str = ', '.join(['dev-{}: {:.4f}%'.format(i, score)
+    acc_str = ', '.join(['dev-{}: {:.4f}'.format(i, score)
                         for i, score in enumerate(scores[:-1])])
     print('Test time: {:0f}s'.format(time_end-time_start))
-    print('Test Loss: [{}, edge-{:.4f}]'.format(loss_str, model_losses[-1]))
-    print('Test Acc.: [{}, edge-{:.4f}]'.format(acc_str, scores[-1]))
-    print('-' * 30)
+    print('Test Loss: [{}, edge: {:.4f}]'.format(loss_str, model_losses[-1]))
+    print('Test Acc.: [{}, edge: {:.4f}]'.format(acc_str, scores[-1]))
+    print('-' * 90)
 
     
     return model_losses, scores
@@ -140,7 +140,7 @@ def train_model(model, model_path, train_loader, test_loader, lr, epochs, num_de
 
         # swicth to cosine annealing with much lower lr
         if epoch == rough_tune + 1:
-            lr = scheduler.get_lr()
+            lr = lr * 0.1
             print('Switching to cosine annealing scheduler with much lower learning rate, lr={}'.format(lr))
             optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999), eps=1e-8)
             scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs)
@@ -183,7 +183,7 @@ if __name__ == '__main__':
                         help='number of devices')
     parser.add_argument('--continue_training', action='store_true',
                         help='continue training from checkpoint')
-    parser.add_argument('--rough_tune', default=5,
+    parser.add_argument('--rough_tune', type=int, default=5,
                         help='rough tuning for n epochs')
 
     args = parser.parse_args()
@@ -226,19 +226,19 @@ if __name__ == '__main__':
 
     # Run training
     print()
-    print('Training staring: [dataset: {}, number of epochs: {}, batch-size: {}, initial learning rate: {}, number of devices {}]'.format(
+    print('Training starting: [dataset: {}, number of epochs: {}, batch-size: {}, initial learning rate: {}, number of devices {}]'.format(
         args.dataset,
         args.epochs,
         args.batch_size,
         args.lr,
         args.n_devices
     ))
-    print('-'*30)
+    print('-' * 90)
     time_since = time.time()
     data = train_model(model, args.output, train_loader, test_loader, args.lr, args.epochs, args.n_devices, args.rough_tune)
 
     
-    print('Training completed in {}'.format(time_since-time.time()))
+    print('Training completed in {}'.format(time.time()-time_since))
     
     df = df.append(data, ignore_index=True)
     df.to_csv('logging/train_data_' + str(time.time()) + '.csv')
