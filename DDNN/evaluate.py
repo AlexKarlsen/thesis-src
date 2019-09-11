@@ -31,10 +31,10 @@ if __name__ == '__main__':
     parser.add_argument('--dataset-root', default='datasets/', help='dataset root folder')
     parser.add_argument('--batch-size', type=int, default=32, metavar='N',
                         help='input batch size for training (default: 64)')
-    parser.add_argument('--dataset', default='mnist', help='dataset name')
+    parser.add_argument('--dataset', default='voc', help='dataset name')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--model_path', default='models/model.pth',
+    parser.add_argument('--model_path', default='models/ddnn/ddnn.pth',
                         help='output directory')
     args = parser.parse_args()
     args.cuda = torch.cuda.is_available()
@@ -46,8 +46,8 @@ if __name__ == '__main__':
     data = datasets.get_dataset(args.dataset_root, args.dataset, args.batch_size, args.cuda)
     train_dataset, train_loader, test_dataset, test_loader = data
     x, _ = train_loader.__iter__().next()
-    num_devices = x.shape[1]
-    in_channels = x.shape[2]
+    num_devices = 5
+    in_channels = 1280
     model = torch.load(args.model_path)
     for i in range(num_devices):
         outages = [i]

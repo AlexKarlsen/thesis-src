@@ -18,6 +18,7 @@ def get_dataset(dataset_root, dataset, batch_size, is_cuda=True):
 
 class ImgAugTransform:
   def __init__(self):
+    sometimes = lambda aug: iaa.Sometimes(0.5, aug)
     self.aug = iaa.Sequential([
         iaa.Resize((224, 224)),
         iaa.Sometimes(0.25, iaa.GaussianBlur(sigma=(0, 3.0))),
