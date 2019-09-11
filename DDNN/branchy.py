@@ -6,32 +6,41 @@ from torchsummary import summary
 
 from torchvision import models as models
 
-class BranchyNet:
+class BranchyNet(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(BranchyNet, self).__init__()
 
-        self.mainbranch = models.resnet152(pretrained=False)
+        self.mainbranch = models.resnet152(pretrained=True)
         self.exit1branch = exit1(self.mainbranch, out_channels)
         self.exit2branch = exit2(self.mainbranch, out_channels)
-
         self.pool = nn.AdaptiveAvgPool2d(1)
+
+        self.base = nn.Sequential(
+            self.mainbranch,
+            self.exit1branch,
+            self.exit2branch,
+            self.pool
+        )
         self.classifier = nn.Linear(2048, out_channels)
+
+        for param in self.mainbranch.parameters():
+            param.requires_grad = False
 
 
     def forward(self, x):
         batch = x.shape[0]
         predictions = []
 
-        p, h = self.exit1branch.forward(x)
+        h, p = self.exit1branch.forward(x)
         predictions.append(p)
 
-        p, h = self.exit2branch.forward(h)
+        h, p = self.exit2branch.forward(h)
         predictions.append(p)
 
-        x = self.mainbranch.layer3[24:36].forward(h)
+        x = self.mainbranch.layer3(h)
         x = self.mainbranch.layer4(x)
 
-        x = self.mainbranch.pool(x)
+        x = self.pool(x)
         p = self.classifier(x.view(batch,-1))
 
         predictions.append(p)
@@ -39,40 +48,62 @@ class BranchyNet:
         return predictions
 
 
-class exit2:
+class exit2(nn.Module):
     def __init__(self, main_model, out_channels):
         super(exit2, self).__init__()
 
-        self.resnet101 = models.resnet101(pretrained=False)
-
-        self.mainbranch = main_model.layer3[7:23]
-        self.exit2branch = self.resnet101.layer4
+        resnet101layer3 = models.resnet101(pretrained=True).layer3
+        resnet101layer4 = models.resnet101(pretrained=True).layer4
         self.pool = nn.AdaptiveAvgPool2d(1)
         self.classifier = nn.Linear(2048, out_channels)
+
+        self.mainbranch = main_model.layer2
+
+        self.exit2branch = nn.Sequential(
+            resnet101layer3,
+            resnet101layer4,
+            self.pool
+        )
+
+        # for param in self.mainbranch.parameters():
+        #     param.requires_grad = False
+
+        for param in self.exit2branch.parameters():
+            param.requires_grad = False
 
     def forward(self, x):
         batch = x.shape[0]
 
         h = self.mainbranch(x)
-        h = self.exit2branch
-        x = self.pool(h)
+        x = self.exit2branch(h)
         
         return h, self.classifier(x.view(batch,-1))
 
-class exit1:
+class exit1(nn.Module):
     def __init__(self, main_model, out_channels):
         super(exit1, self).__init__() 
 
+        # main branch is handled in sub-branches to easily extend to distributed network spiltting
         self.main_model = main_model
 
-        self.resnet50 = models.resnet50(pretrained=False)
-        self.exit1branch = nn.Sequential(
-            self.resnet50.layer3,
-            self.resnet50.layer4
-        )
-
+        resnet50layer2 = models.resnet50(pretrained=True).layer2
+        resnet50layer3 = models.resnet50(pretrained=True).layer3
+        resnet50layer4 = models.resnet50(pretrained=True).layer4
         self.pool = nn.AdaptiveAvgPool2d(1)
         self.classifier = nn.Linear(2048, out_channels)
+
+        self.exit1branch = nn.Sequential(
+            resnet50layer2,
+            resnet50layer3,
+            resnet50layer4,
+            self.pool
+        )
+
+        # for param in self.main_model.parameters():
+        #     param.requires_grad = False
+        
+        for param in self.exit1branch.parameters():
+            param.requires_grad = False
 
     def forward(self, x):
         batch = x.shape[0]
@@ -82,11 +113,6 @@ class exit1:
         h = self.main_model.relu(h)
         h = self.main_model.maxpool(h)
         h = self.main_model.layer1(h)
-        h = self.main_model.layer2(h)
         x = self.exit1branch(h)
-        x = self.pool(x)
 
         return h, self.classifier(x.view(batch,-1)) 
-
-
-model = BranchyNet(3,20)
