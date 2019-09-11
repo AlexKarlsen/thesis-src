@@ -14,7 +14,7 @@ class DDNN(nn.Module):
         self.device_models = []
         for _ in range(num_devices):
             self.device_models.append(DeviceModel(in_channels, out_channels))
-        self.device_models = nn.ModuleList(self.device_models)
+        #self.device_models = nn.ModuleList(self.device_models)
 
         edge_input_channels = 1280*num_devices
         self.edge_model = models.resnet50(pretrained=False)
