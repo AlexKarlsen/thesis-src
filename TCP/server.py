@@ -37,7 +37,7 @@ class TCPServer:
                     print('Socket: Connected by', addr)
 
                     tot_size = 0
-                    n_images = 0
+                    n_images = 1
 
                     while True:
                         size = conn.recv(4)
@@ -54,6 +54,7 @@ class TCPServer:
                                 part = conn.recv(buffer_size)
                                 data += part
                                 size -= len(part)
+                                # print(len(part))
 
                                 pbar.update(len(part))
 
