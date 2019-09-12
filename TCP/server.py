@@ -37,7 +37,7 @@ class TCPServer:
                     print('Socket: Connected by', addr)
 
                     tot_size = 0
-                    n_images = 1
+                    n_images = 0
 
                     while True:
                         size = conn.recv(4)
@@ -58,15 +58,12 @@ class TCPServer:
 
                                 pbar.update(len(part))
 
-                                if len(part) < buffer_size: # either 0 or end of data
-
-                                    #print('Received image #{}'.format(n_images))
-                                    data_arr.append(data)
-                                    
-                                    n_images += 1
-                                    reply = 'server received image #{}'.format(n_images)
-                                    conn.sendall(bytes(reply.encode('utf8')))
-                                    break
+                            data_arr.append(data)
+                            
+                            
+                            reply = 'server received image #{}'.format(n_images)
+                            conn.sendall(bytes(reply.encode('utf8')))
+                            n_images += 1
 
                 time_end = perf_counter()
                 time_elapsed = time_end - time_start
