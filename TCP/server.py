@@ -28,8 +28,10 @@ class TCPServer:
             s.listen()
             print('Socket: Listen')
             
+            data_arr = []
+                
+            conn, addr = s.accept()
             while True:
-                conn, addr = s.accept()
                 time_start = perf_counter()
                 with conn:
                     print('Socket: Connected by', addr)
@@ -43,6 +45,7 @@ class TCPServer:
                             break
                         size = int.from_bytes(size, byteorder='big')
                         tot_size += size
+                        
                         data = b''
 
                         with tqdm(total=size, unit='B', unit_scale=True, leave=True) as pbar:
@@ -57,10 +60,9 @@ class TCPServer:
                                 if len(part) < buffer_size: # either 0 or end of data
 
                                     #print('Received image #{}'.format(n_images))
-                                    if save:
-                                        self.saveImage(str(n_images), data)
-                                    n_images +=1
-
+                                    data_arr.append(data)
+                                    
+                                    n_images += 1
                                     reply = 'server received image #{}'.format(n_images)
                                     conn.sendall(bytes(reply.encode('utf8')))
                                     break
@@ -81,6 +83,7 @@ class TCPServer:
 
                 self.df = self.df.append(stats, ignore_index=True)
                 print(self.df)
+                return data_arr
 
     def stop(self):
         self.socket.close()
@@ -99,8 +102,9 @@ if __name__ == '__main__':
 
     server = TCPServer()
     try:
-        server.start(args.host, args.port, args.buffer_size, save=args.save)
-        
+        data = server.start(args.host, args.port, args.buffer_size, save=args.save)
+        for i, d in enumerate(data):
+            server.saveImage(str(i), d)
     except KeyboardInterrupt:
         server.stop()
 
