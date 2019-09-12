@@ -32,12 +32,13 @@ class TCPServer:
                 
             conn, addr = s.accept()
             while True:
-                time_start = perf_counter()
+                
                 with conn:
                     print('Socket: Connected by', addr)
 
                     tot_size = 0
                     n_images = 0
+                    time_elapsed = 0
 
                     while True:
                         size = conn.recv(4)
@@ -49,6 +50,7 @@ class TCPServer:
                         data = b''
 
                         with tqdm(total=size, unit='B', unit_scale=True, leave=True) as pbar:
+                            time_start = perf_counter()
                             while size > 0:
                                 pbar.set_description(desc='Image #' + str(n_images))
                                 part = conn.recv(buffer_size)
@@ -61,12 +63,12 @@ class TCPServer:
                             data_arr.append(data)
                             
                             
-                            reply = 'server received image #{}'.format(n_images)
-                            conn.sendall(bytes(reply.encode('utf8')))
+                            
+                            conn.sendall(b'ack')
                             n_images += 1
 
-                time_end = perf_counter()
-                time_elapsed = time_end - time_start
+                            time_end = perf_counter()
+                            time_elapsed += (time_end - time_start)
 
                 tot_size = tot_size / 1000000
 
