@@ -9,19 +9,20 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 import time
+import copy
 import pandas as pd
 
 import datasets
-from branchy import BranchyNet as net
+from DResNET import DResNet as net
 
-def train(model, train_loader, optimizer, branches=3):
+def train(model, train_loader, optimizer):
 
     # setting to train mode. This could be refactored see transfer learning tutorial
     model.train()
 
     # seems nifty, but what happen exactly here?...
-    model_losses = [0]*(branches)
-    num_correct = [0]*(branches)
+    model_losses = [0]*(model.branches)
+    num_correct = [0]*(model.branches)
 
     # start timing training
     time_start = time.time()
@@ -77,7 +78,7 @@ def train(model, train_loader, optimizer, branches=3):
     
     return model_losses, scores
 
-def test(model, test_loader, branches=3):
+def test(model, test_loader, branches=4):
     model.eval()
     model_losses = [0]*(branches)
     num_correct = [0]*(branches)
@@ -126,12 +127,23 @@ def test(model, test_loader, branches=3):
     
     return model_losses, scores
 
-def train_model(model, model_path, train_loader, test_loader, lr, epochs, rough_tune):
+def train_model(model, model_path, train_loader, test_loader, lr, epochs, rough_tune, name):
     # for params in model.exit1branch.parameters():
     #     params.requires_grad = False
     # for params in model.exit2branch.parameters():
     #     params.requires_grad = False
     #ps = filter(lambda x: x.requires_grad, model.parameters())
+
+    # Data logging
+    cols = []
+    for v in ['train', 'test']:
+        for u in ['loss', 'accuracy']:
+            cols +=  ['branch-'+ str(index)+ '-' + v + '-' + u  for index in range(4)]
+    df = pd.DataFrame(columns=cols)
+
+    best_model_wts = copy.deepcopy(model.state_dict())
+    best_acc = 0.0
+
     optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999), eps=1e-8)
     # rough-tuning
     if rough_tune != 0:
@@ -139,16 +151,15 @@ def train_model(model, model_path, train_loader, test_loader, lr, epochs, rough_
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
 
     data_arr = []
-
+ 
     for epoch in range(1, epochs+1):
         print('[Epoch {}/{}]'.format(epoch,epochs))
 
         # swicth to cosine annealing with much lower lr
         if epoch == rough_tune + 1:
-            for i, j in zip(model.exit1branch.exit1branch.parameters(), model.exit2branch.exit2branch.parameters()):
+            for i in model.model.parameters():
                 i.requires_grad = True
-                j.requires_grad = True
-            lr = lr * 0.1
+            lr = lr * 0.01
             print('Switching to cosine annealing scheduler with much lower learning rate, lr={}'.format(lr))
             optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999), eps=1e-8)
             scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs)
@@ -157,10 +168,15 @@ def train_model(model, model_path, train_loader, test_loader, lr, epochs, rough_
         train_loss, train_acc = train(model, train_loader, optimizer)
         test_loss, test_acc = test(model, test_loader)
 
+        # deep copy the model
+        # if test_acc > best_acc:
+        #     best_acc = test
+        #     best_model_wts = copy.deepcopy(model.state_dict())
+        #     torch.save(model, model_path + 'model.pth')
+
         # format training and testing data
         data = train_loss + train_acc + test_loss + test_acc
         data_dict = dict(zip(cols, data))
-        data_arr.append(data_dict)
 
         # save all the models for inference
         torch.save(model, model_path + 'ddnn.pth')
@@ -170,7 +186,8 @@ def train_model(model, model_path, train_loader, test_loader, lr, epochs, rough_
 
         scheduler.step()
 
-    return data_arr
+        df = df.append(data_dict, ignore_index=True)
+        df.to_csv('logging/train_data_' + name + '.csv')
 
 if __name__ == '__main__':
     # Training settings
@@ -183,6 +200,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=1e-3, metavar='LR',
                         help='learning rate (default: 1e-3)')
     parser.add_argument('--dataset', default='voc', help='dataset name')
+    parser.add_argument('--name', default='ddnn', help='run name')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
     parser.add_argument('--output', default='models/ddnn/',
@@ -214,20 +232,13 @@ if __name__ == '__main__':
     model_path = args.output
     
     # construct DDNN
-    model = net(in_channels, out_channels)
+    model = net(out_channels)
 
     if args.continue_training:
-        model = torch.load(model_path + 'ddnn.pth')
+        model = torch.load(model_path + 'model.pth')
 
     # load on GPU
     model = model.to(device)
-
-    # Data logging
-    cols = []
-    for v in ['train', 'test']:
-        for u in ['loss', 'accuracy']:
-            cols +=  ['branch-'+ str(index)+ '-' + v + '-' + u  for index in range(3)]
-    df = pd.DataFrame(columns=cols)
 
     # Run training
     print()
@@ -239,10 +250,9 @@ if __name__ == '__main__':
     ))
     print('-' * 90)
     time_since = time.time()
-    data = train_model(model, args.output, train_loader, test_loader, args.lr, args.epochs, args.rough_tune)
+    train_model(model, args.output, train_loader, test_loader, args.lr, args.epochs, args.rough_tune, args.name)
 
     
     print('Training completed in {}'.format(time.time()-time_since))
     
-    df = df.append(data, ignore_index=True)
-    df.to_csv('logging/train_data_' + str(time.time()) + '.csv')
+    

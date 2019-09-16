@@ -10,7 +10,7 @@ class BranchyNet(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(BranchyNet, self).__init__()
 
-        self.mainbranch = models.resnet152(pretrained=True)
+        self.mainbranch = models.resnet50(pretrained=True)
         self.exit1branch = exit1(self.mainbranch, out_channels)
         self.exit2branch = exit2(self.mainbranch, out_channels)
         self.pool = nn.AdaptiveAvgPool2d(1)
