@@ -6,9 +6,9 @@ from torchsummary import summary
 
 from torchvision import models as models
 
-class DResNet(nn.Module):
+class BResNet(nn.Module):
     def __init__(self, out_channels):
-        super(DResNet, self).__init__()
+        super(BResNet, self).__init__()
 
         self.branches = 4
 

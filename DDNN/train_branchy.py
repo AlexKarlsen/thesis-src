@@ -13,7 +13,7 @@ import copy
 import pandas as pd
 
 import datasets
-from DResNET import DResNet as net
+from BResNet import BResNet as net
 
 def train(model, train_loader, optimizer):
 
