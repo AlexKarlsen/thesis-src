@@ -39,38 +39,39 @@ class TCPServer:
                     tot_size = 0
                     n_images = 0
                     time_elapsed = 0
+                    delays = []
 
                     while True:
+                        # receive image size info
                         size = conn.recv(4)
                         if not size:
                             break
-                        size = int.from_bytes(size, byteorder='big')
-                        tot_size += size
+                        size = int.from_bytes(size, byteorder='big') # convert byte to int
+                        tot_size += size # add size to total counter
                         
-                        data = b''
+                        data = b'' # dataholder
 
-                        with tqdm(total=size, unit='B', unit_scale=True, leave=True) as pbar:
-                            time_start = perf_counter()
+                        with tqdm(total=size, unit='B', unit_scale=True, leave=False) as pbar:
+                            delay = 0
                             while size > 0:
                                 pbar.set_description(desc='Image #' + str(n_images))
-                                part = conn.recv(buffer_size)
-                                data += part
-                                size -= len(part)
-                                # print(len(part))
+                                tic = perf_counter() # timing
+                                part = conn.recv(buffer_size) # receive chunk
+                                data += part # append chunk
+                                size -= len(part) # substract from size to track progres
+                                delay += perf_counter() - tic # timing end
 
                                 pbar.update(len(part))
 
                             data_arr.append(data)
-                            
+                            delays.append(delay)
                             
                             
                             conn.sendall(b'ack')
                             n_images += 1
 
-                            time_end = perf_counter()
-                            time_elapsed += (time_end - time_start)
-
-                tot_size = tot_size / 1000000
+                tot_size = tot_size / 1e6
+                time_elapsed = sum(delays)
 
                 stats = {
                     'n_transmissions': n_images, 
@@ -78,7 +79,7 @@ class TCPServer:
                     'avg_time (s)' : time_elapsed/n_images,
                     'total size (Mb)': tot_size,
                     'avg. size (Mb)': tot_size / n_images,
-                    'data rate (Mbit/s)' : (tot_size*8)/time_elapsed
+                    'data rate (Mbit/s)' : ((tot_size+3+4)*8)/time_elapsed
                 }
 
                 self.df = self.df.append(stats, ignore_index=True)
@@ -103,8 +104,9 @@ if __name__ == '__main__':
     server = TCPServer()
     try:
         data = server.start(args.host, args.port, args.buffer_size, save=args.save)
-        for i, d in enumerate(data):
-            server.saveImage(str(i), d)
+        if args.save:
+            for i, d in enumerate(data):
+                server.saveImage(str(i), d)
     except KeyboardInterrupt:
         server.stop()
 
