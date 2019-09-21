@@ -12,14 +12,12 @@ import numpy as np
 
 class TCPClient:
 
-    
-
     def __init__(self):
         self.socket = socket(AF_INET, SOCK_STREAM) 
         self.HEAD_CODE = '<hhhd'
         self.HEAD_SIZE = struct.calcsize(self.HEAD_CODE)
 
-    def start(self, host, port, chunk_size, image_paths, timeout=0, save=False):
+    def start(self, host, port, chunk_size, image_paths, log, timeout=0):
         img_delay = []
         img_sizes = []
 
@@ -70,19 +68,10 @@ class TCPClient:
         self.socket.close()
         print('Socket closed')
 
+    def log(self,name, dataframe):
+        dataframe.to_csv('log/client/' + name + '.csv')
 
-if __name__ == '__main__':
-    # Training settings
-    parser = argparse.ArgumentParser(description='TCP server')
-    parser.add_argument('--name', default='give-a_better_name', help='Give a name to run')
-    parser.add_argument('--host', default='127.0.0.1', help='host ip')
-    parser.add_argument('--port', type=int, default=65432, help='port')
-    parser.add_argument('--buffer_size', type=int, default=4096,  help='buffer size')
-    parser.add_argument('--image_path', default="'/home/nuc/Documents/Dataset/ILSVRC2012/ILSVRC2012_images_val'", help='path to images')
-    parser.add_argument('--timeout', type=int, default=0, help='timeout setting for entire request')
-    parser.add_argument('--save', default=False, help='save run results')
-    args = parser.parse_args()
-
+def main(args):
     client = TCPClient()
 
     try:
@@ -98,34 +87,50 @@ if __name__ == '__main__':
                 img_paths.append(os.path.join(args.image_path, i))
 
 
-        delays, sizes = client.start(args.host, args.port, args.buffer_size, img_paths, timeout=args.timeout, save=args.save)
+        delays, sizes = client.start(args.host, args.port, args.buffer_size, img_paths, args.log)
 
         n_images = len(img_paths)
         time_elapsed = sum(delays)
         tot_size = sum(sizes) / 1e6
         bit_size = (tot_size+4+3)*8
 
-        
-
-        if args.save is not False:
-            stats = [{
+        stats = [{
             'n_transmissions': n_images, 
             'total_time (s)': time_elapsed, 
             'avg_time (s)': time_elapsed / n_images, 
             'total size (Mb)': tot_size,
             'avg. size (Mb)': tot_size / n_images,
             'data rate (Mbit/s)' : bit_size / time_elapsed
-            }]
+        }]
+        df = pd.DataFrame(stats)
 
-            df = pd.DataFrame(stats)
+        if args.print:
             print(df)
-
-            df.to_csv(args.name + '.csv')
-            np.save('timings', {'img_delay': delays})
+        
+        if args.log is not False:
+            client.log(args.name + '_'+ str(args.buffer_size) + '_' + str(args.number), df)
+            np.save('log/client/' + args.name + '_'+ str(args.buffer_size) + '_' + str(args.number), {'img_delay': delays, 'img_size': sizes})
             print('Test results have been saved.')
 
     except KeyboardInterrupt:
         client.stop()
+
+
+
+if __name__ == '__main__':
+    # Training settings
+    parser = argparse.ArgumentParser(description='TCP server')
+    parser.add_argument('--name', default='client_run_name', help='Give a name to run')
+    parser.add_argument('--number', default='1', help='run number')
+    parser.add_argument('--host', default='127.0.0.1', help='host ip')
+    parser.add_argument('--port', type=int, default=65432, help='port')
+    parser.add_argument('--buffer_size', type=int, default=4096,  help='buffer size')
+    parser.add_argument('--image_path', default="'/home/nuc/Documents/Dataset/ILSVRC2012/ILSVRC2012_images_val'", help='path to images')
+    parser.add_argument('--timeout', type=int, default=0, help='timeout setting for entire request')
+    parser.add_argument('--log', default=True, help='log run results')
+    parser.add_argument('--print', default=True, help='Console print output')
+    args = parser.parse_args()
+    main(args)
 
     
 

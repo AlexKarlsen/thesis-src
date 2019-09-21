@@ -15,7 +15,8 @@ class TCPServer:
         with open('received/' + filename + '.jpg', 'wb') as i:
             i.write(data)
 
-    def start(self, host, port, buffer_size, save=False):
+    def start(self, name, host, port, buffer_size, save=False):
+        conn_counter = 1
         with self.socket as s:
             s.bind((host, port))
             print('Socket: Bind to ({},{})'.format(host, port))
@@ -26,8 +27,11 @@ class TCPServer:
             delays = []
             sizes = []
 
-            conn, addr = s.accept()
             while True:
+                
+                conn, addr = s.accept()
+
+            
                 
                 with conn:
                     print('Socket: Connected by', addr)
@@ -46,16 +50,6 @@ class TCPServer:
                         with tqdm(total=size, unit='B', unit_scale=True, leave=False) as pbar:
                             delay = 0
                             while size > 0:
-
-                                #  try:
-                                #     head = struct.unpack(cfg.HEAD_CODE, data[:cfg.HEAD_SIZE])
-                                #     time_list.append(tic)
-                                #     packet_list.append(data)
-                                #     if head[2] + 1 == head[1]:
-                                #         break
-                                # except struct.error:
-                                #     pass
-
                                 pbar.set_description(desc='Image #' + str(n_images))
                                 tic = perf_counter() # timing
                                 part = conn.recv(buffer_size) # receive chunk
@@ -73,47 +67,39 @@ class TCPServer:
                             conn.sendall(b'ack')
                             n_images += 1
 
-                return images, delays, sizes
+                # return images, delays, sizes
+                n_images = len(images)
+                time_elapsed = sum(delays)
+                tot_size = sum(sizes)
+                tot_size = tot_size / 1e6
+
+                stats = [{
+                                'n_transmissions': n_images, 
+                                'total_time (s)': time_elapsed,
+                                'avg_time (s)' : time_elapsed/n_images,
+                                'total size (Mb)': tot_size,
+                                'avg. size (Mb)': tot_size / n_images,
+                                'data rate (Mbit/s)' : ((tot_size+3+4)*8)/time_elapsed
+                            }]
+
+                df = pd.DataFrame(stats)
+                self.log(name, df, delays, sizes, conn_counter, buffer_size)
+                conn_counter += 1
+                
 
     def stop(self):
         self.socket.close()
         print('Socket closed')
 
-    def log(self,name, dataframe):
-        dataframe.to_csv('log/server/' + name + '.csv')
+    def log(self,name, dataframe, delays, sizes, number, buffer_size):
+        dataframe.to_csv('log/server/' + name + '_'+ str(buffer_size) + '_' + str(number) +'.csv')
+        np.save('log/server/' + name + '_'+ str(buffer_size) + '_' + str(number), {'img_delay': delays, 'img_size': sizes})
+        print('Test {} results logged'.format(number))
 
 def main(args):
     server = TCPServer()
     try:
-        images, delays, sizes = server.start(args.host, args.port, args.buffer_size, save=args.save)
-
-        n_images = len(images)
-        time_elapsed = sum(delays)
-        tot_size = sum(sizes)
-        tot_size = tot_size / 1e6
-
-        stats = [{
-                        'n_transmissions': n_images, 
-                        'total_time (s)': time_elapsed,
-                        'avg_time (s)' : time_elapsed/n_images,
-                        'total size (Mb)': tot_size,
-                        'avg. size (Mb)': tot_size / n_images,
-                        'data rate (Mbit/s)' : ((tot_size+3+4)*8)/time_elapsed
-                    }]
-
-        df = pd.DataFrame(stats)
-
-        if args.print:
-            print(df)
-
-        if args.log:
-            server.log(args.name + '_'+ str(args.buffer_size) + '_' + args.number, df)
-            np.save('log/server/' + args.name + '_'+ str(args.buffer_size) + '_' + str(args.number), {'img_delay': delays, 'img_size': sizes})
-            print('Test results have been saved.')
-        
-        if args.save:
-            for i, data in enumerate(images):
-                server.saveImage('image_' + str(i), data)
+        server.start(args.name, args.host, args.port, args.buffer_size, save=args.save)
     except KeyboardInterrupt:
         server.stop()
 
