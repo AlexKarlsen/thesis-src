@@ -11,6 +11,7 @@ import torch.optim as optim
 import time
 import copy
 import pandas as pd
+from statistics import mean
 
 import datasets
 from BResNet import BResNet as net
@@ -20,7 +21,6 @@ def train(model, train_loader, optimizer):
     # setting to train mode. This could be refactored see transfer learning tutorial
     model.train()
 
-    # seems nifty, but what happen exactly here?...
     model_losses = [0]*(model.branches)
     num_correct = [0]*(model.branches)
 
@@ -28,7 +28,7 @@ def train(model, train_loader, optimizer):
     time_start = time.time()
         
     # iterate data
-    for batch_idx, (data, target) in enumerate(tqdm(train_loader, leave=False)):
+    for data, target in tqdm(train_loader, leave=False, unit='batch', desc='Training'):
         if torch.cuda.is_available():
             data, target = data.to(device), target.to(device)
 
@@ -60,6 +60,8 @@ def train(model, train_loader, optimizer):
 
     N = len(train_loader.dataset)
 
+    time_run = time.time() - time_start
+
     # return losses and scores for visualization
     model_losses = [i.item() / N for i in model_losses]
     scores = [i / N for i in num_correct]
@@ -68,7 +70,7 @@ def train(model, train_loader, optimizer):
                         for i, loss in enumerate(model_losses)])
     acc_str = ', '.join(['branch-{}: {:.4f}'.format(i, correct)
                         for i, correct in enumerate(scores)])
-    print('Train Time: {:0f}s'.format(time.time()-time_start))                        
+    print('Train Time: {:0f}s'.format(time_run))                        
     print('Train Loss: [{}]'.format(loss_str))
     print('Train Acc.: [{}]'.format(acc_str))
     print('-' * 90)
@@ -76,7 +78,7 @@ def train(model, train_loader, optimizer):
     #train_data = { 'Edge train loss':  model_losses[-1]}
 
     
-    return model_losses, scores
+    return model_losses, scores, time_run
 
 def test(model, test_loader, branches=4):
     model.eval()
@@ -90,7 +92,7 @@ def test(model, test_loader, branches=4):
     # if not we run out of memory
     with torch.no_grad():
         # iterate test data
-        for data, target in tqdm(test_loader, leave=False):
+        for data, target in tqdm(test_loader, leave=False, unit='batch', desc='Testing'):
             data, target = data.cuda(), target.cuda()
             predictions = model(data)
 
@@ -108,7 +110,7 @@ def test(model, test_loader, branches=4):
                 model_losses[i] += loss.sum()*len(target)
 
     # end timing training
-    time_end = time.time()
+    time_run = time.time() - time_start
 
     N = len(test_loader.dataset)
     # return losses and scores for visualization
@@ -119,13 +121,13 @@ def test(model, test_loader, branches=4):
                         for i, loss in enumerate(model_losses)])
     acc_str = ', '.join(['branch-{}: {:.4f}'.format(i, score)
                         for i, score in enumerate(scores)])
-    print('Test time: {:0f}s'.format(time_end-time_start))
+    print('Test time: {:0f}s'.format(time_run))
     print('Test Loss: [{}]'.format(loss_str))
     print('Test Acc.: [{}]'.format(acc_str))
     print('-' * 90)
 
     
-    return model_losses, scores
+    return model_losses, scores, time_run
 
 def train_model(model, model_path, train_loader, test_loader, lr, epochs, rough_tune, name):
     # for params in model.exit1branch.parameters():
@@ -137,55 +139,62 @@ def train_model(model, model_path, train_loader, test_loader, lr, epochs, rough_
     # Data logging
     cols = []
     for v in ['train', 'test']:
-        for u in ['loss', 'accuracy']:
+        for u in ['loss', 'accuracy', 'time']:
             cols +=  ['branch-'+ str(index)+ '-' + v + '-' + u  for index in range(4)]
     df = pd.DataFrame(columns=cols)
 
-    best_model_wts = copy.deepcopy(model.state_dict())
+    #best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
 
     optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999), eps=1e-8)
     # rough-tuning
     if rough_tune != 0:
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=rough_tune, gamma=0.1)
-    os.makedirs(os.path.dirname(model_path), exist_ok=True)
 
-    data_arr = []
+    # if model directory does not exits, then create it
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
  
+    # train test lop
     for epoch in range(1, epochs+1):
         print('[Epoch {}/{}]'.format(epoch,epochs))
 
-        # swicth to cosine annealing with much lower lr
-        if epoch == rough_tune + 1:
+        # freezing base to rough tune classifier
+        if rough_tune:
             for i in model.model.parameters():
-                i.requires_grad = True
-            lr = lr * 0.01
+                i.requires_grad = False
+
+        # start fine-tuning
+        if epoch == rough_tune + 1:
+            lr = lr * 0.01 # should this be a parameter
             print('Switching to cosine annealing scheduler with much lower learning rate, lr={}'.format(lr))
             optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999), eps=1e-8)
             scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs)
 
         # Run train and test and get data
-        train_loss, train_acc = train(model, train_loader, optimizer)
-        test_loss, test_acc = test(model, test_loader)
+        train_loss, train_acc, train_time = train(model, train_loader, optimizer)
+        test_loss, test_acc, test_time = test(model, test_loader)
 
         # deep copy the model
-        # if test_acc > best_acc:
-        #     best_acc = test
-        #     best_model_wts = copy.deepcopy(model.state_dict())
-        #     torch.save(model, model_path + 'model.pth')
-
+        if mean(test_acc) > mean(best_acc):
+            best_acc = test_acc
+            # best_model_wts = copy.deepcopy(model.state_dict())
+            torch.save(model, model_path + 'model.pth')
+        data = []
         # format training and testing data
-        data = train_loss + train_acc + test_loss + test_acc
+        data.append(train_loss)
+        data.append(train_acc)
+        data.append(train_time)
+        data.append(test_loss)
+        data.append(test_acc)
+        data.append(test_time)
         data_dict = dict(zip(cols, data))
 
-        # save all the models for inference
-        torch.save(model, model_path + 'ddnn.pth')
-        # torch.save(model.edge_model, model_path + 'edge.pth')
-        # for i, device in enumerate(model.device_models):
-        #     torch.save(device, model_path + 'dev' + str(i) + '.pth')
+        # save the models for inference
+        torch.save(model, model_path + name + '.pth')
 
         scheduler.step()
 
+        # continously log results
         df = df.append(data_dict, ignore_index=True)
         df.to_csv('logging/train_data_' + name + '.csv')
 
@@ -228,14 +237,12 @@ if __name__ == '__main__':
     in_channels = x.shape[2]
     out_channels = len(train_dataset.classes)
 
-    # path to saved model 
-    model_path = args.output
     
     # construct DDNN
     model = net(out_channels)
 
     if args.continue_training:
-        model = torch.load(model_path + 'model.pth')
+        model = torch.load(args.output + 'model.pth')
 
     # load on GPU
     model = model.to(device)

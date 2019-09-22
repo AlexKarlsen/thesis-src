@@ -11,6 +11,8 @@ import imgaug as ia
 def get_dataset(dataset_root, dataset, batch_size, is_cuda=True):
     if dataset == 'voc':
         train, test, train_loader, test_loader = get_voc(dataset_root, batch_size, is_cuda)
+    elif dataset_root == 'imagenet':
+        train, test, train_loader, test_loader = get_imagenet(dataset_root, batch_size, is_cuda)
     else:
         raise ValueError('Dataset `{}` not found'.format(dataset))
 
@@ -18,7 +20,7 @@ def get_dataset(dataset_root, dataset, batch_size, is_cuda=True):
 
 class ImgAugTransform:
   def __init__(self):
-    sometimes = lambda aug: iaa.Sometimes(0.5, aug)
+    #sometimes = lambda aug: iaa.Sometimes(0.5, aug)
     self.aug = iaa.Sequential([
         iaa.Resize((224, 224)),
         iaa.Sometimes(0.25, iaa.GaussianBlur(sigma=(0, 3.0))),
@@ -34,8 +36,8 @@ class ImgAugTransform:
     img = np.array(img)
     return self.aug.augment_image(img)
 
-def get_voc(dataset_root, batch_size, is_cuda=True, valid_size=.2):
-    kwargs = {'num_workers': 8, 'pin_memory': True} if is_cuda else {}
+def get_voc(dataset_root, batch_size, is_cuda=True):
+    kwargs = {'num_workers': 4, 'pin_memory': True} if is_cuda else {}
     data_dir = 'voc'
 
     data_transforms = {
@@ -55,7 +57,35 @@ def get_voc(dataset_root, batch_size, is_cuda=True, valid_size=.2):
     image_datasets = {x: datasets.ImageFolder(os.path.join(dataset_root, data_dir, x), data_transforms[x]) for x in ['train', 'test']}
 
     dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size, shuffle=True, drop_last=False, **kwargs) for x in ['train', 'test']}
-    dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'test']}
-    class_names = image_datasets['train'].classes
+    # dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'test']}
+    # class_names = image_datasets['train'].classes
     
     return image_datasets['train'], image_datasets['test'], dataloaders['train'], dataloaders['test']
+
+def get_imagenet(dataset_root, batch_size, is_cuda=True):
+    kwargs = {'num_workers': 4, 'pin_memory': True} if is_cuda else {}
+    data_dir = 'imagenet'
+
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
+
+    data_transforms = {
+        'train': transforms.Compose([
+            ImgAugTransform(),
+            transforms.ToTensor(),
+            normalize
+        ]),
+        'val': transforms.Compose([
+            transforms.Scale(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            normalize
+        ])
+    }
+
+    image_datasets = {x: datasets.ImageFolder(os.path.join(dataset_root, data_dir, x), data_transforms[x]) for x in ['train', 'val']}
+
+    dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size, shuffle=True, drop_last=False, **kwargs) for x in ['train', 'val']}
+
+    return image_datasets['train'], image_datasets['val'], dataloaders['train'], dataloaders['val']
+        

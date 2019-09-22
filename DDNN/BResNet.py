@@ -2,52 +2,59 @@ from __future__ import print_function
 import torch
 
 import torch.nn as nn
-from torchsummary import summary
-
-from torchvision import models as models
+from torchvision import models
 
 class BResNet(nn.Module):
-    def __init__(self, out_channels):
+    def __init__(self ,out_channels, pretrained=True):
         super(BResNet, self).__init__()
 
         self.branches = 4
 
-        self.model = models.resnet50(pretrained=True)
-        self.pool = nn.AdaptiveAvgPool2d(1)
-        self.clf1 = nn.Linear(256, out_channels)
-        self.clf2 = nn.Linear(512, out_channels)
-        self.clf3 = nn.Linear(1024, out_channels)
-        self.clf4 = nn.Linear(2048, out_channels)
+        self.model = models.resnet50(pretrained=pretrained)
 
-        for params in self.model.parameters():
-            params.requires_grad = False
+        self.conv1 = nn.Sequential([
+            self.model.conv1,
+            self.model.bn1,
+            self.model.maxpool # according to article, maxpool belong to conv2_x, however to simplify code using exit it is moved to conv1
+        ])
+
+        self.exit1 = Exit(self.model.layer1, 256, out_channels)
+        self.exit2 = Exit(self.model.layer2, 512, out_channels)
+        self.exit3 = Exit(self.model.layer3, 1024, out_channels)
+        self.exit4 = Exit(self.model.layer4, 2048, out_channels)
 
     def forward(self, x):
-        batch = x.shape[0]
         predictions = []
 
-        x = self.model.conv1(x)
-        x = self.model.bn1(x)
-        x = self.model.maxpool(x)
+        x = self.conv1(x) # this must always be called before exit
 
-        x = self.model.layer1(x)
-        p = self.pool(x)
-        p = self.clf1(p.view(batch,-1))
+        p, x = self.exit1(x)
         predictions.append(p)
 
-        x = self.model.layer2(x)
-        p = self.pool(x)
-        p = self.clf2(p.view(batch,-1))
+        p, x = self.exit2(x)
         predictions.append(p)
 
-        x = self.model.layer3(x)
-        p = self.pool(x)
-        p = self.clf3(p.view(batch,-1))
+        p, x = self.exit3(x)
         predictions.append(p)
 
-        x = self.model.layer4(x)
-        p = self.pool(x)
-        p = self.clf4(p.view(batch,-1))
+        p, x = self.exit4(x)
         predictions.append(p)
         
         return predictions
+
+class Exit(nn.Module):
+    def __init__(self, base_model, output_size, out_channels):
+        super(Exit, self).__init__()
+
+        self.base = base_model
+        self.pool = nn.AdaptiveAvgPool2d(1)
+        self.clf = nn.Linear(output_size, out_channels)
+
+    def forward(self, x):
+        batch = x.shape[0]
+
+        x = self.base(x)
+        p = self.pool(x)
+        p = self.clf(p.view(batch,-1))
+
+        return p, x
