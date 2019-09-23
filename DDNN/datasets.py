@@ -140,7 +140,7 @@ def get_imagenet(dataset_root, batch_size, is_cuda=True):
         ])
     }
 
-    image_datasets = {x: datasets.ImageNet(os.path.join(dataset_root, data_dir, x), data_transforms[x]) for x in ['train', 'val']}
+    image_datasets = {x: datasets.ImageNet(os.path.join(dataset_root, data_dir, x), split=x, transform=data_transforms[x]) for x in ['train', 'val']}
 
     dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size, shuffle=True, drop_last=False, **kwargs) for x in ['train', 'val']}
 

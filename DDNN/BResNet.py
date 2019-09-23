@@ -12,11 +12,11 @@ class BResNet(nn.Module):
 
         self.model = models.resnet50(pretrained=pretrained)
 
-        self.conv1 = nn.Sequential([
+        self.conv1 = nn.Sequential(
             self.model.conv1,
             self.model.bn1,
             self.model.maxpool # according to article, maxpool belong to conv2_x, however to simplify code using exit it is moved to conv1
-        ])
+        )
 
         self.exit1 = Exit(self.model.layer1, 256, out_channels)
         self.exit2 = Exit(self.model.layer2, 512, out_channels)
