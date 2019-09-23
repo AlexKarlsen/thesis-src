@@ -146,10 +146,10 @@ def train_model(model, model_path, train_loader, test_loader, lr, epochs, rough_
     #best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
 
-    optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999), eps=1e-8)
+    optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=1e-4)
     # rough-tuning
-    if rough_tune != 0:
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=rough_tune, gamma=0.1)
+    # if rough_tune != 0:
+    #     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=rough_tune, gamma=0.1)
 
     # if model directory does not exits, then create it
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
@@ -158,17 +158,17 @@ def train_model(model, model_path, train_loader, test_loader, lr, epochs, rough_
     for epoch in range(1, epochs+1):
         print('[Epoch {}/{}]'.format(epoch,epochs))
 
-        # freezing base to rough tune classifier
-        if rough_tune:
-            for i in model.model.parameters():
-                i.requires_grad = False
+        # # freezing base to rough tune classifier
+        # if rough_tune:
+        #     for i in model.model.parameters():
+        #         i.requires_grad = False
 
-        # start fine-tuning
-        if epoch == rough_tune + 1:
-            lr = lr * 0.01 # should this be a parameter
-            print('Switching to cosine annealing scheduler with much lower learning rate, lr={}'.format(lr))
-            optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999), eps=1e-8)
-            scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs)
+        # # start fine-tuning
+        # if epoch == rough_tune + 1:
+        #     lr = lr * 0.01 # should this be a parameter
+        #     print('Switching to cosine annealing scheduler with much lower learning rate, lr={}'.format(lr))
+        #     optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999), eps=1e-8)
+        scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, epochs)
 
         # Run train and test and get data
         train_loss, train_acc, train_time = train(model, train_loader, optimizer)
