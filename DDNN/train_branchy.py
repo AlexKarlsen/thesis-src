@@ -127,7 +127,7 @@ def test(model, test_loader, branches=4):
     
     return model_losses, scores
 
-def train_model(model, model_path, train_loader, test_loader, lr, epochs, rough_tune, name):
+def train_model(model, model_path, train_loader, test_loader, lr, epochs, rough_tune, name, unfreeze_base):
     # for params in model.exit1branch.parameters():
     #     params.requires_grad = False
     # for params in model.exit2branch.parameters():
@@ -157,12 +157,15 @@ def train_model(model, model_path, train_loader, test_loader, lr, epochs, rough_
 
         # swicth to cosine annealing with much lower lr
         if epoch == rough_tune + 1:
-            for i in model.model.parameters():
-                i.requires_grad = True
-            lr = lr * 0.01
+            
+            lr = lr * 0.1
             print('Switching to cosine annealing scheduler with much lower learning rate, lr={}'.format(lr))
             optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999), eps=1e-8)
             scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs)
+
+        if unfreeze_base: 
+            for i in model.model.parameters():
+                i.requires_grad = True
 
         # Run train and test and get data
         train_loss, train_acc = train(model, train_loader, optimizer)
@@ -209,6 +212,7 @@ if __name__ == '__main__':
                         help='continue training from checkpoint')
     parser.add_argument('--rough_tune', type=int, default=5,
                         help='rough tuning for n epochs')
+    parser.add_argument('--unfreeze_base', action='store_true', help='unfreeze base')
 
     args = parser.parse_args()
 
@@ -250,7 +254,7 @@ if __name__ == '__main__':
     ))
     print('-' * 90)
     time_since = time.time()
-    train_model(model, args.output, train_loader, test_loader, args.lr, args.epochs, args.rough_tune, args.name)
+    train_model(model, args.output, train_loader, test_loader, args.lr, args.epochs, args.rough_tune, args.name, args.unfreeze_base)
 
     
     print('Training completed in {}'.format(time.time()-time_since))
