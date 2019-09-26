@@ -4,6 +4,8 @@ import torch
 import torch.nn as nn
 from torchvision import models
 
+import time
+
 class BResNet(nn.Module):
     def __init__(self ,out_channels, pretrained=True):
         super(BResNet, self).__init__()
@@ -25,22 +27,30 @@ class BResNet(nn.Module):
 
     def forward(self, x):
         predictions = []
+        timings = []
 
+        time_start = time.time()
         x = self.conv1(x) # this must always be called before exit
 
         p, x = self.exit1(x)
+        timings.append((time.time()-time_start)*1000)
         predictions.append(p)
+        
 
         p, x = self.exit2(x)
+        timings.append((time.time()-time_start)*1000)
         predictions.append(p)
+        
 
         p, x = self.exit3(x)
+        timings.append((time.time()-time_start)*1000)
         predictions.append(p)
 
         p, x = self.exit4(x)
+        timings.append((time.time()-time_start)*1000)
         predictions.append(p)
         
-        return predictions
+        return predictions, timings
 
 class Exit(nn.Module):
     def __init__(self, base_model, output_size, out_channels):

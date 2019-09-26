@@ -10,21 +10,21 @@ import imgaug as ia
 
 from miniImageNet import MiniImageNet
 
-def get_dataset(dataset_root, dataset, batch_size, subset_n_classes, is_cuda=True):
+def get_dataset(dataset_root, dataset, batch_size, n_classes=10, is_cuda=True):
     if dataset == 'voc':
-        train, test, train_loader, test_loader = get_voc(dataset_root, batch_size, is_cuda)
+        train_loader, test_loader = get_voc(dataset_root, batch_size, is_cuda)
     elif dataset == 'imagenet':
-        train, test, train_loader, test_loader = get_imagenet(dataset_root, batch_size, is_cuda)
+        train_loader, test_loader = get_imagenet(dataset_root, batch_size, is_cuda)
     elif dataset == 'miniimagenet':
-         train, test, train_loader, test_loader = get_miniimagenet(dataset_root, batch_size, is_cuda)
+        train_loader, test_loader = get_miniimagenet(dataset_root, batch_size, n_classes, is_cuda)
     else:
         raise ValueError('Dataset `{}` not found'.format(dataset))
 
-    return train, train_loader, test, test_loader
+    return train_loader, test_loader
 
 class ImgAugTransform:
   def __init__(self):
-    sometimes = lambda aug: iaa.Sometimes(0.5, aug)
+    # sometimes = lambda aug: iaa.Sometimes(0.5, aug)
     self.aug = iaa.Sequential([
                     iaa.Resize((224,224)),
                     iaa.Sometimes(0.25, iaa.GaussianBlur(sigma=(0, 3.0))),
@@ -59,12 +59,12 @@ def get_voc(dataset_root, batch_size, is_cuda=True):
     }
 
     image_datasets = {x: datasets.ImageFolder(os.path.join(dataset_root, data_dir, x), data_transforms[x]) for x in ['train', 'test']}
-
+    
     dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size, shuffle=True, drop_last=False, **kwargs) for x in ['train', 'test']}
     # dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'test']}
     # class_names = image_datasets['train'].classes
     
-    return image_datasets['train'], image_datasets['test'], dataloaders['train'], dataloaders['test']
+    return dataloaders['train'], dataloaders['test']
 
 def get_imagenet(dataset_root, batch_size, is_cuda=True):
     kwargs = {'num_workers': 4, 'pin_memory': True} if is_cuda else {}
@@ -88,12 +88,11 @@ def get_imagenet(dataset_root, batch_size, is_cuda=True):
     }
 
     image_datasets = {x: datasets.ImageNet(os.path.join(dataset_root, data_dir), split=x, transform=data_transforms[x], download=False) for x in ['train', 'val']}
-
     dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size, shuffle=True, drop_last=False, **kwargs) for x in ['train', 'val']}
 
-    return image_datasets['train'], image_datasets['val'], dataloaders['train'], dataloaders['val']
+    return dataloaders['train'], dataloaders['val']
 
-def get_miniimagenet(dataset_root, batch_size, is_cuda=True):
+def get_miniimagenet(dataset_root, batch_size, n_classes, is_cuda=True):
         kwargs = {'num_workers': 4, 'pin_memory': True} if is_cuda else {}
         data_dir = 'imagenet'
 
@@ -114,9 +113,9 @@ def get_miniimagenet(dataset_root, batch_size, is_cuda=True):
             ])
         }
 
-        image_datasets = {x: MiniImageNet(os.path.join(dataset_root, data_dir), x, transform=data_transforms[x]) for x in ['train', 'val']}
+        image_datasets = {x: MiniImageNet(os.path.join(dataset_root, data_dir), x, n_classes, transform=data_transforms[x]) for x in ['train', 'val']}
 
         dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size, shuffle=True, drop_last=False, **kwargs) for x in ['train', 'val']}
 
-        return image_datasets['train'], image_datasets['val'], dataloaders['train'], dataloaders['val']
+        return dataloaders['train'], dataloaders['val']
         
