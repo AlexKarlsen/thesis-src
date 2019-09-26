@@ -208,11 +208,13 @@ if __name__ == '__main__':
     parser.add_argument('--dataset-root', default='datasets/', help='dataset root folder')
     parser.add_argument('--batch-size', type=int, default=32, metavar='N',
                         help='input batch size for training (default: 32)')
+    parser.add_argument('--n-classes', type=int, default=200, metavar='N',
+                        help='input batch size for training (default: 200)')
     parser.add_argument('--epochs', type=int, default=50, metavar='N',
                         help='number of epochs to train (default: 50)')
     parser.add_argument('--lr', type=float, default=1e-3, metavar='LR',
                         help='learning rate (default: 1e-3)')
-    parser.add_argument('--dataset', default='voc', help='dataset name')
+    parser.add_argument('--dataset', default='imagenet', help='dataset name')
     parser.add_argument('--name', default='ddnn', help='run name')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
@@ -235,7 +237,7 @@ if __name__ == '__main__':
         torch.cuda.manual_seed(args.seed)
 
     # get input data
-    train_dataset, train_loader, test_dataset, test_loader = datasets.get_dataset(args.dataset_root, args.dataset, args.batch_size, device)
+    train_dataset, train_loader, test_dataset, test_loader = datasets.get_dataset(args.dataset_root, args.dataset, args.batch_size, args.n_classes, device)
 
     # get channels from input data
     x, _ = train_loader.__iter__().next()
