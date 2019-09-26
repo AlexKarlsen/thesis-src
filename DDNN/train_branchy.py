@@ -27,6 +27,7 @@ def train(model, branch_weights, train_loader, optimizer):
 
     model_losses = np.zeros(model.branches)
     num_correct = np.zeros(model.branches)
+    timings_arr = np.empty((0,4))
 
     # start timing training
     time_start = time.time()
@@ -41,22 +42,22 @@ def train(model, branch_weights, train_loader, optimizer):
 
         # run model on input
         predictions, timings = model(data)
-        
+        total_loss = 0
         # for each branch prediction, add to loss
-        for i, prediction in enumerate(predictions):
+        for i, (prediction, weight) in enumerate(zip(predictions, branch_weights)):
             # compute the loss
             loss = F.cross_entropy(prediction, target)
             # add loss to list
             model_losses[i] += loss.sum()*len(target)
-
+            total_loss += (loss * weight)
             #what exactly happens here?
             pred = prediction.data.max(1, keepdim=True)[1]
             correct = (pred.view(-1) == target.view(-1)).long().sum().item()
             num_correct[i] += correct
-        
-        loss_weigthed_sum = np.sum(np.multiply(model_losses, branch_weights))
+            timings_arr = np.append(timings_arr, np.array([timings]),axis=0)
+
         # backpropagate
-        loss_weigthed_sum.backward()
+        total_loss.backward()
         optimizer.step()
 
     N = len(train_loader.dataset)
@@ -76,13 +77,13 @@ def train(model, branch_weights, train_loader, optimizer):
     print('Train Acc.: [{}]'.format(acc_str))
     print('-' * 90)
 
-    return model_losses, scores, timings
+    return model_losses, scores, np.mean(timings_arr,axis=0)
 
 def test(model, test_loader):
     model.eval()
     model_losses = np.zeros(model.branches)
     num_correct = np.zeros(model.branches)
-
+    timings_arr = np.array([[]])
     # start timing inference
     time_start = time.time()
 
@@ -106,9 +107,11 @@ def test(model, test_loader):
                 num_correct[i] += correct
                 # add to loss counter
                 model_losses[i] += loss.sum()*len(target)
+                timings_arr = np.append(timings_arr, np.array([timings]),axis=0)
 
     # end timing training
     time_run = time.time() - time_start
+    
 
     N = len(test_loader.dataset)
     # return losses and scores for visualization
@@ -124,7 +127,7 @@ def test(model, test_loader):
     print('Test Acc.: [{}]'.format(acc_str))
     print('-' * 90)
 
-    return model_losses, scores, timings
+    return model_losses, scores, np.mean(timings_arr,axis=0)
 
 def train_model(model, name, model_path, train_loader, test_loader, lr, epochs, branch_weights):
     # Data logging
