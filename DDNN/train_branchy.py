@@ -5,11 +5,13 @@ import os
 from tqdm import tqdm
 
 import torch
+from torch.optim import SGD
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import torch.nn.functional as F
-import torch.optim as optim
 
 import time
 import copy
+import numpy as np
 import pandas as pd
 from statistics import mean
 
@@ -21,8 +23,8 @@ def train(model, train_loader, optimizer):
     # setting to train mode. This could be refactored see transfer learning tutorial
     model.train()
 
-    model_losses = [0]*(model.branches)
-    num_correct = [0]*(model.branches)
+    model_losses = np.zeros(model.branches)
+    num_correct = np.zeros(model.branches)
 
     # start timing training
     time_start = time.time()
@@ -32,7 +34,7 @@ def train(model, train_loader, optimizer):
         if torch.cuda.is_available():
             data, target = data.to(device), target.to(device)
 
-        # The loss for the entire DDNN
+        # The loss for the entire network
         total_loss = 0
 
         #zero the parameter gradients
@@ -146,7 +148,7 @@ def train_model(model, model_path, train_loader, test_loader, lr, epochs, rough_
     #best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
 
-    optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=1e-4)
+    optimizer = SGD(model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=1e-4)
     # rough-tuning
     # if rough_tune != 0:
     #     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=rough_tune, gamma=0.1)
@@ -168,7 +170,7 @@ def train_model(model, model_path, train_loader, test_loader, lr, epochs, rough_
         #     lr = lr * 0.01 # should this be a parameter
         #     print('Switching to cosine annealing scheduler with much lower learning rate, lr={}'.format(lr))
         #     optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999), eps=1e-8)
-        scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, epochs)
+        scheduler = CosineAnnealingWarmRestarts(optimizer, epochs)
 
         if unfreeze_base: 
             for i in model.model.parameters():
@@ -242,7 +244,6 @@ if __name__ == '__main__':
     in_channels = x.shape[2]
     out_channels = len(train_dataset.classes)
 
-    
     # construct DDNN
     model = net(out_channels)
 
@@ -264,7 +265,9 @@ if __name__ == '__main__':
     time_since = time.time()
     train_model(model, args.output, train_loader, test_loader, args.lr, args.epochs, args.rough_tune, args.name, args.unfreeze_base)
 
-    
-    print('Training completed in {}'.format(time.time()-time_since))
+    time_elapsed = time.time() - time_since
+    minutes, seconds = divmod(time_elapsed, 60)
+    hours, minutes = divmod(minutes, 60)
+    print('Training completed in {}:{}:{}'.format(hours, minutes, seconds))
     
     
