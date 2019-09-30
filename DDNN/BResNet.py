@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torchvision import models
 
-import time
+from time import perf_counter # uses the most precise clock on OS 
 
 class BResNet(nn.Module):
     def __init__(self ,out_channels, pretrained=True):
@@ -29,25 +29,25 @@ class BResNet(nn.Module):
         predictions = []
         timings = []
 
-        time_start = time.time()
+        time_start = perf_counter()
         x = self.conv1(x) # this must always be called before exit
 
         p, x = self.exit1(x)
-        timings.append((time.time()-time_start)*1000)
+        timings.append((perf_counter()-time_start)*1000)
         predictions.append(p)
         
 
         p, x = self.exit2(x)
-        timings.append((time.time()-time_start)*1000)
+        timings.append((perf_counter()-time_start)*1000)
         predictions.append(p)
         
 
         p, x = self.exit3(x)
-        timings.append((time.time()-time_start)*1000)
+        timings.append((perf_counter()-time_start)*1000)
         predictions.append(p)
 
         p, x = self.exit4(x)
-        timings.append((time.time()-time_start)*1000)
+        timings.append((perf_counter()-time_start)*1000)
         predictions.append(p)
         
         return predictions, timings

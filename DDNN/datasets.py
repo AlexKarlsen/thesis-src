@@ -58,6 +58,8 @@ def get_voc(dataset_root, batch_size, is_cuda=True):
         ]),
     }
 
+
+
     image_datasets = {x: datasets.ImageFolder(os.path.join(dataset_root, data_dir, x), data_transforms[x]) for x in ['train', 'test']}
     
     dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size, shuffle=True, drop_last=False, **kwargs) for x in ['train', 'test']}
@@ -112,10 +114,15 @@ def get_miniimagenet(dataset_root, batch_size, n_classes, is_cuda=True):
                 normalize
             ])
         }
+        
+        shuffle = {
+        'train': True,
+        'val': False
+        }
 
         image_datasets = {x: MiniImageNet(os.path.join(dataset_root, data_dir), x, n_classes, transform=data_transforms[x]) for x in ['train', 'val']}
 
-        dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size, shuffle=True, drop_last=False, **kwargs) for x in ['train', 'val']}
+        dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size, shuffle=shuffle[x], drop_last=False, **kwargs) for x in ['train', 'val']}
 
         return dataloaders['train'], dataloaders['val']
         

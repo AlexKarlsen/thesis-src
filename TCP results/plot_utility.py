@@ -2,6 +2,8 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy import stats
+plt.rcParams.update({'font.size': 18})
+sns.set()
 
 def draw_average_overhead_per_img(cfg, overhead_list):
     x = np.arange(len(cfg.scenario))
