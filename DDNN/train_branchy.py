@@ -9,11 +9,10 @@ from torch.optim import SGD
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import torch.nn.functional as F
 
-import time
+from time import perf_counter, strftime # uses the most precise clock on OS 
 import copy
 import numpy as np
 import pandas as pd
-from statistics import mean
 
 from logger import Logger
 
@@ -30,7 +29,7 @@ def train(model, branch_weights, train_loader, optimizer):
     timings_arr = []
 
     # start timing training
-    time_start = time.time()
+    time_start = perf_counter()
         
     # iterate data
     for data, target in tqdm(train_loader, leave=False, unit='batch', desc='Training'):
@@ -62,7 +61,7 @@ def train(model, branch_weights, train_loader, optimizer):
 
     N = len(train_loader.dataset)
 
-    time_run = time.time() - time_start
+    time_run = perf_counter() - time_start
 
     # return losses and scores for visualization
     model_losses = [i.item() / N for i in model_losses]
@@ -85,7 +84,7 @@ def test(model, test_loader):
     num_correct = np.zeros(model.branches)
     timings_arr = np.empty((0,4))
     # start timing inference
-    time_start = time.time()
+    time_start = perf_counter()
 
     # do not compute gradient for testing. 
     # if not we run out of memory
@@ -110,7 +109,7 @@ def test(model, test_loader):
                 timings_arr = np.append(timings_arr, np.array([timings]),axis=0)
 
     # end timing training
-    time_run = time.time() - time_start
+    time_run = perf_counter() - time_start
     
 
     N = len(test_loader.dataset)
@@ -151,7 +150,7 @@ def train_model(model, name, model_path, train_loader, test_loader, lr, epochs, 
         test_loss, test_acc, test_time = test(model, test_loader)
 
         # Save best model i.e. early stopping
-        if mean(test_acc) > mean(best_acc):
+        if np.mean(test_acc) > np.mean(best_acc):
             best_acc = test_acc
             # best_model_wts = copy.deepcopy(model.state_dict())
             print('Saving new best model')
@@ -184,7 +183,7 @@ if __name__ == '__main__':
                          help="my help message", type=float, default=[1.0, 1.0, 1.0, 1.0])
     args = parser.parse_args()
 
-    timestr = time.strftime("%Y%m%d-%H%M%S")
+    timestr = strftime("%Y%m%d-%H%M%S")
     name = args.name + '_' + timestr
     # use cuda if available else use cpu
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -221,10 +220,10 @@ if __name__ == '__main__':
         args.lr
     ))
     print('-' * 90)
-    time_since = time.time()
+    time_since = perf_counter()
     train_model(model, name, model_path, train_loader, test_loader, args.lr, args.epochs, args.branch_weights)
 
-    time_elapsed = time.time() - time_since
+    time_elapsed = perf_counter() - time_since
     minutes, seconds = divmod(time_elapsed, 60)
     hours, minutes = divmod(minutes, 60)
     print('Training completed in {:.0f}h{:.0f}m{:.2f}s'.format(hours, minutes, seconds))

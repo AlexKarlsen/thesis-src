@@ -34,7 +34,7 @@ class Configuration():
     scenario = ['meetingroom', 'kitchen', 'corridor']
     sc_color = ['r', 'g', 'b']
 
-    chunk_size = [1024, 4096]
+    chunk_size = [4096]
     size_ls = ['-', '--']
 
     num_trail = 5
