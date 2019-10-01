@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import os
 
+#import branchymodels.BResNet
 import datasets
 
 from torch.autograd import Variable
@@ -14,10 +15,13 @@ import torch.nn.functional as F
 class threshold_tester():
     def __init__(self):
         self.cols = ['threshold', 'test', 'exit', 'sample', 'exited', 'prediction', 'target', 'correct', 'score', 'time']
-        self.df = pd.DataFrame(columns=cols)
-
-    def log(self, threshold, test, n_exit, sample, exited, prediction, target, correct, score, time):
-         self.df = df.append(dict(zip(self.cols,[
+        self.df = pd.DataFrame(columns=self.cols)
+    
+    def save(self, name):
+        self.df.to_csv(os.path.join('logging', 'inference_test', name + '.csv'))
+    
+    def log(self, name, threshold, test, n_exit, sample, exited, prediction, target, correct, score, time):
+        self.df = self.df.append(dict(zip(self.cols,[
              threshold, 
              test, 
              n_exit, 
@@ -28,8 +32,7 @@ class threshold_tester():
              correct, 
              score, 
              time])), ignore_index = True)
-        self.df.to_csv(os.path.join('logging', 'threshold_test', + name + '.csv'))
-
+        
     def confidence_threshold(self, name, threshold_range, model, test_loader):
         for test, threshold in enumerate(threshold_range):
             for sample, (data, target) in enumerate(tqdm(test_loader, leave=False, unit='batch', desc='Testing confidence threshold = {}'.format(threshold))):
@@ -39,15 +42,15 @@ class threshold_tester():
                 for n_exit, (pred, time) in enumerate(zip(predictions, timings)):
 
                     score = F.softmax(pred, dim=1)
-                    probability, label = topk(score, k=15)
-                    correct = (label[0] == target.view(-1)).long().sum().item()
+                    probability, label = topk(score, k=5)
+                    correct = (label.view(-1)[0] == target.view(-1)).long().sum().item()
 
                     if torch.max(probability).item() > threshold: # if model confidence it higher than threshold value
                         exited = 1
                     else:
                         exited = 0
-                    self.log(threshold, test, n_exit, sample, exited, label[0],  target.view(-1), correct, score, time)
-                   
+                    self.log(name, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, score.view(-1)[0].item(), time)
+            self.save(name)
             
     def score_margin_threshold(self, name, threshold_range, model, test_loader):
         for test, threshold in enumerate(threshold_range):
@@ -60,7 +63,7 @@ class threshold_tester():
                     score = F.softmax(pred, dim=1)
                     # I should try to do like in train script if I keep getting too good results...
                     probability, label = topk(score, k=5)
-                    correct = (label[0] == target.view(-1)).long().sum().item()
+                    correct = (label.view(-1) == target.view(-1)).long().sum().item()
                     
                     score_margin = (probability[0][0] - probability[0][1]).item()
 
@@ -68,7 +71,8 @@ class threshold_tester():
                         exited = 1
                     else:
                         exited = 0
-                     self.log(threshold, test, n_exit, sample, exited, label[0],  target.view(-1), correct, score, time)
+                    self.log(name, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, score.view(-1)[0].item(), time)
+            self.save(name)
 
 if __name__ == '__main__':
     # Training settings
@@ -82,7 +86,7 @@ if __name__ == '__main__':
                         help='input batch size for training (default: 1000)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--model_path', default='models/branchy/miniimagenet_10_20190926-135000_model.pth',
+    parser.add_argument('--model_path', default='models/dense/miniimagenet_10_20191001-121910_model.pth',
                         help='output directory')
     args = parser.parse_args()
 
@@ -98,10 +102,17 @@ if __name__ == '__main__':
     x, _ = test_loader.__iter__().next()
 
     model = torch.load(args.model_path)
+    
+    # load on GPU
+    model = model.to(device)
+
+    model.eval()
+
     tester = threshold_tester()
 
     thresholds = np.arange(0.1, 1, 0.1)
     with torch.no_grad():
-        tester.confidence_threshold(args.name + '_confidence', thresholds, model, test_loader)
         tester.score_margin_threshold(args.name + '_score_margin', thresholds, model, test_loader)
+        tester.confidence_threshold(args.name + '_confidence', thresholds, model, test_loader)
+        
     

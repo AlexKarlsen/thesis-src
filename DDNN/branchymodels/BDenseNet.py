@@ -73,10 +73,9 @@ class Exit(nn.Module):
         batch = x.shape[0]
 
         x = self.base(x)
-        x = self.transistion_layer(x)
         p = self.pool(x)
         p = self.clf(p.view(batch,-1))
-        
+        x = self.transistion_layer(x)
 
         return p, x
 
