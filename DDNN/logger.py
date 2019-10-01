@@ -13,7 +13,7 @@ class Logger():
 
     def log(self, train_loss, train_acc, train_time, test_loss, test_acc, test_time):
         data = []
-        data = train_loss + train_acc + train_time + test_loss + test_acc + test_time
+        data = train_loss + train_acc + train_time.tolist() + test_loss + test_acc + test_time.tolist()
         data_dict = dict(zip(self.cols, data))
 
         # continously log results

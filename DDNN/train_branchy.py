@@ -27,7 +27,7 @@ def train(model, branch_weights, train_loader, optimizer):
 
     model_losses = np.zeros(model.branches)
     num_correct = np.zeros(model.branches)
-    timings_arr = np.empty((0,4))
+    timings_arr = []
 
     # start timing training
     time_start = time.time()
@@ -54,7 +54,7 @@ def train(model, branch_weights, train_loader, optimizer):
             pred = prediction.data.max(1, keepdim=True)[1]
             correct = (pred.view(-1) == target.view(-1)).long().sum().item()
             num_correct[i] += correct
-            timings_arr = np.append(timings_arr, np.array([timings]),axis=0)
+            timings_arr.append(timings)
 
         # backpropagate
         total_loss.backward()
@@ -77,13 +77,13 @@ def train(model, branch_weights, train_loader, optimizer):
     print('Train Acc.: [{}]'.format(acc_str))
     print('-' * 90)
 
-    return model_losses, scores, np.mean(timings_arr,axis=0)
+    return model_losses, scores, np.mean(timings_arr, axis=0)
 
 def test(model, test_loader):
     model.eval()
     model_losses = np.zeros(model.branches)
     num_correct = np.zeros(model.branches)
-    timings_arr = np.array([[]])
+    timings_arr = np.empty((0,4))
     # start timing inference
     time_start = time.time()
 
