@@ -1,5 +1,6 @@
 import argparse
 import torch
+from torch import topk
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
@@ -10,36 +11,69 @@ import datasets
 from torch.autograd import Variable
 import torch.nn.functional as F
 
-def confidence_threshold(threshold_range, model, test_loader):
-    for test, threshold in enumerate(threshold_range):
-        for sample, (data, target) in enumerate(tqdm(test_loader, leave=False, unit='batch', desc='Testing')):
-            data, target = data.cuda(), target.cuda()
-            predictions, timings = model(data)
+class threshold_tester():
+    def __init__(self):
+        self.cols = ['threshold', 'test', 'exit', 'sample', 'exited', 'prediction', 'target', 'correct', 'score', 'time']
+        self.df = pd.DataFrame(columns=cols)
 
-            cols = ['test', 'exit', 'sample', 'threshold', 'exited', 'correct', 'confidence', 'time']
-            df = pd.DataFrame(columns=cols)
+    def log(self, threshold, test, n_exit, sample, exited, prediction, target, correct, score, time):
+         self.df = df.append(dict(zip(self.cols,[
+             threshold, 
+             test, 
+             n_exit, 
+             sample, 
+             exited,
+             prediction,
+             target, 
+             correct, 
+             score, 
+             time])), ignore_index = True)
+        self.df.to_csv(os.path.join('logging', 'threshold_test', + name + '.csv'))
+
+    def confidence_threshold(self, name, threshold_range, model, test_loader):
+        for test, threshold in enumerate(threshold_range):
+            for sample, (data, target) in enumerate(tqdm(test_loader, leave=False, unit='batch', desc='Testing confidence threshold = {}'.format(threshold))):
+                data, target = data.cuda(), target.cuda()
+                predictions, timings = model(data)
+
+                for n_exit, (pred, time) in enumerate(zip(predictions, timings)):
+
+                    score = F.softmax(pred, dim=1)
+                    probability, label = topk(score, k=15)
+                    correct = (label[0] == target.view(-1)).long().sum().item()
+
+                    if torch.max(probability).item() > threshold: # if model confidence it higher than threshold value
+                        exited = 1
+                    else:
+                        exited = 0
+                    self.log(threshold, test, n_exit, sample, exited, label[0],  target.view(-1), correct, score, time)
+                   
             
-            for n_exit, (pred, time) in enumerate(zip(predictions, timings)):
+    def score_margin_threshold(self, name, threshold_range, model, test_loader):
+        for test, threshold in enumerate(threshold_range):
+            for sample, (data, target) in enumerate(tqdm(test_loader, leave=False, unit='batch', desc='Testing score margin threshold = {}'.format(threshold))):
+                data, target = data.cuda(), target.cuda()
+                predictions, timings = model(data)
 
-                confidence = F.softmax(pred, dim=1)
-                correct = (pred.view(-1) == target.view(-1)).long().sum().item()
-                
-                if confidence.argmax(dim=1) > threshold: # if model confidence it higher than threshold value
-                    exited = 1
-                else:
-                    exited = 0
-                df = df.append([test, n_exit, sample, exited, correct, confidence, time])
-    df.to_csv(os.path.join('logging', 'threshold_test', 'name.csv'))
-        
+                for n_exit, (pred, time) in enumerate(zip(predictions, timings)):
 
-        
+                    score = F.softmax(pred, dim=1)
+                    # I should try to do like in train script if I keep getting too good results...
+                    probability, label = topk(score, k=5)
+                    correct = (label[0] == target.view(-1)).long().sum().item()
+                    
+                    score_margin = (probability[0][0] - probability[0][1]).item()
 
-def score_margin_threshold(threshold_range, test_loader):
-    pass
+                    if score_margin > threshold: # if model confidence it higher than threshold value
+                        exited = 1
+                    else:
+                        exited = 0
+                     self.log(threshold, test, n_exit, sample, exited, label[0],  target.view(-1), correct, score, time)
 
 if __name__ == '__main__':
     # Training settings
     parser = argparse.ArgumentParser(description='DDNN Evaluation')
+    parser.add_argument('--name', default='branchy', help='run name')
     parser.add_argument('--dataset-root', default='datasets/', help='dataset root folder')
     parser.add_argument('--batch-size', type=int, default=1, metavar='N',
                         help='input batch size for training (default: 1)')
@@ -48,7 +82,7 @@ if __name__ == '__main__':
                         help='input batch size for training (default: 1000)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--model_path', default='models/ddnn/ddnn.pth',
+    parser.add_argument('--model_path', default='models/branchy/miniimagenet_10_20190926-135000_model.pth',
                         help='output directory')
     args = parser.parse_args()
 
@@ -60,11 +94,14 @@ if __name__ == '__main__':
     if device == 'cuda:0':
         torch.cuda.manual_seed(args.seed)
 
-    _, test_loader = datasets.get_dataset(args.dataset_root, args.dataset, args.batch_size, args.n_classes, args.cuda)
+    _, test_loader = datasets.get_dataset(args.dataset_root, args.dataset, args.batch_size, args.n_classes, device)
     x, _ = test_loader.__iter__().next()
 
     model = torch.load(args.model_path)
+    tester = threshold_tester()
 
-    thresholds = np.arange(0.1, 0.9, 0.1)
-    confidence_threshold(thresholds, model, test_loader)
+    thresholds = np.arange(0.1, 1, 0.1)
+    with torch.no_grad():
+        tester.confidence_threshold(args.name + '_confidence', thresholds, model, test_loader)
+        tester.score_margin_threshold(args.name + '_score_margin', thresholds, model, test_loader)
     

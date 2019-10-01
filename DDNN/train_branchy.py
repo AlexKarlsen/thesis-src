@@ -17,7 +17,7 @@ import pandas as pd
 from logger import Logger
 
 import datasets
-from BResNet import BResNet as net
+from branchymodels.BDenseNet import BDenseNet as  net
 
 def train(model, branch_weights, train_loader, optimizer):
 

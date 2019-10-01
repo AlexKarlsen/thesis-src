@@ -14,7 +14,7 @@ class BDenseNet(nn.Module):
 
         self.branches = 4
 
-        self.model = models.densenet121(pretrained=pretrained, num_classes=out_channels)
+        self.model = models.densenet121(pretrained=pretrained)
 
         exit1 = nn.Sequential(
             self.model.features.conv0,
@@ -27,6 +27,7 @@ class BDenseNet(nn.Module):
         self.exit1 = Exit(exit1, self.model.features.transition1, 256, out_channels)
         self.exit2 = Exit(self.model.features.denseblock2, self.model.features.transition2, 512, out_channels)
         self.exit3 = Exit(self.model.features.denseblock3, self.model.features.transition3, 1024, out_channels)
+        self.clf = nn.Linear(1024, out_channels)
 
     def forward(self, x):
         predictions = []
@@ -53,7 +54,7 @@ class BDenseNet(nn.Module):
         x = F.relu(x, inplace=True)
         x = F.adaptive_avg_pool2d(x, (1, 1))
         x = torch.flatten(x, 1)
-        p = self.model.classifier(x)
+        p = self.clf(x)
         timings.append((perf_counter()-time_start)*1000)
         predictions.append(p)
         
@@ -72,9 +73,10 @@ class Exit(nn.Module):
         batch = x.shape[0]
 
         x = self.base(x)
+        x = self.transistion_layer(x)
         p = self.pool(x)
         p = self.clf(p.view(batch,-1))
-        x = self.transistion_layer(x)
+        
 
         return p, x
 
