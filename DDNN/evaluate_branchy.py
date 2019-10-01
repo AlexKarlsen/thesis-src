@@ -18,7 +18,7 @@ class threshold_tester():
         self.df = pd.DataFrame(columns=self.cols)
     
     def save(self, name):
-        self.df.to_csv(os.path.join('logging', 'inference_test', name + '.csv'))
+        self.df.to_csv(os.path.join('logging', 'threshold_test', name + '.csv'))
     
     def log(self, name, threshold, test, n_exit, sample, exited, prediction, target, correct, score, time):
         self.df = self.df.append(dict(zip(self.cols,[
@@ -43,7 +43,7 @@ class threshold_tester():
 
                     score = F.softmax(pred, dim=1)
                     probability, label = topk(score, k=5)
-                    correct = (label.view(-1)[0] == target.view(-1)).long().sum().item()
+                    correct = (label.view(-1)[0].item() == target.view(-1).item())
 
                     if torch.max(probability).item() > threshold: # if model confidence it higher than threshold value
                         exited = 1
@@ -63,7 +63,7 @@ class threshold_tester():
                     score = F.softmax(pred, dim=1)
                     # I should try to do like in train script if I keep getting too good results...
                     probability, label = topk(score, k=5)
-                    correct = (label.view(-1) == target.view(-1)).long().sum().item()
+                    correct = (label.view(-1)[0].item() == target.view(-1).item())
                     
                     score_margin = (probability[0][0] - probability[0][1]).item()
 
@@ -112,7 +112,8 @@ if __name__ == '__main__':
 
     thresholds = np.arange(0.1, 1, 0.1)
     with torch.no_grad():
-        tester.score_margin_threshold(args.name + '_score_margin', thresholds, model, test_loader)
         tester.confidence_threshold(args.name + '_confidence', thresholds, model, test_loader)
+        tester.score_margin_threshold(args.name + '_score_margin', thresholds, model, test_loader)
+        
         
     

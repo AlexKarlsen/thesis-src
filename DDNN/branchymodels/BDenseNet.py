@@ -15,7 +15,7 @@ class BDenseNet(nn.Module):
         self.branches = 4
 
         self.model = models.densenet121(pretrained=pretrained)
-
+        
         exit1 = nn.Sequential(
             self.model.features.conv0,
             self.model.features.norm0,
@@ -24,10 +24,12 @@ class BDenseNet(nn.Module):
             self.model.features.denseblock1
         )
 
-        self.exit1 = Exit(exit1, self.model.features.transition1, 256, out_channels)
-        self.exit2 = Exit(self.model.features.denseblock2, self.model.features.transition2, 512, out_channels)
-        self.exit3 = Exit(self.model.features.denseblock3, self.model.features.transition3, 1024, out_channels)
-        self.clf = nn.Linear(1024, out_channels)
+        self.exit1 = Exit(exit1, self.model.features.transition1, 128, out_channels)
+        self.exit2 = Exit(self.model.features.denseblock2, self.model.features.transition2, 256, out_channels)
+        self.exit3 = Exit(self.model.features.denseblock3, self.model.features.transition3, 512, out_channels)
+
+        self.exit4 = Exit4(self.model.features.denseblock4, self.model.features.norm5, out_channels)
+        
 
     def forward(self, x):
         predictions = []
@@ -49,16 +51,29 @@ class BDenseNet(nn.Module):
         timings.append((perf_counter()-time_start)*1000)
         predictions.append(p)
 
-        x = self.model.features.denseblock4(x)
-        x = self.model.features.norm5(x)
-        x = F.relu(x, inplace=True)
-        x = F.adaptive_avg_pool2d(x, (1, 1))
-        x = torch.flatten(x, 1)
-        p = self.clf(x)
+        p = self.exit4(x)
         timings.append((perf_counter()-time_start)*1000)
         predictions.append(p)
         
         return predictions, timings
+
+class Exit4(nn.Module):
+    def __init__(self, denseblock4, norm5, out_channels):
+        super(Exit4, self).__init__()
+        self.model = nn.Sequential(
+            denseblock4,
+            norm5
+        )
+        self.clf = nn.Linear(1024, out_channels)
+
+    def forward(self, x):
+        x = self.model(x)
+        x = F.relu(x, inplace=True)
+        x = F.adaptive_avg_pool2d(x, (1, 1))
+        x = torch.flatten(x, 1)
+        p = self.clf(x)
+
+        return p
 
 class Exit(nn.Module):
     def __init__(self, base_model, transistion_layer, output_size, out_channels):
@@ -73,9 +88,10 @@ class Exit(nn.Module):
         batch = x.shape[0]
 
         x = self.base(x)
+        x = self.transistion_layer(x)
         p = self.pool(x)
         p = self.clf(p.view(batch,-1))
-        x = self.transistion_layer(x)
+        
 
         return p, x
 
