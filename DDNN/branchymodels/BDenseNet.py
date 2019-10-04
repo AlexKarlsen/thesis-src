@@ -24,11 +24,14 @@ class BDenseNet(nn.Module):
             self.model.features.denseblock1
         )
 
-        self.exit1 = Exit(exit1, self.model.features.transition1, 128, out_channels)
-        self.exit2 = Exit(self.model.features.denseblock2, self.model.features.transition2, 256, out_channels)
-        self.exit3 = Exit(self.model.features.denseblock3, self.model.features.transition3, 512, out_channels)
-
+        self.exit1 = Exit(exit1, 256, out_channels)
+        self.exit2 = Exit(self.model.features.denseblock2, 512, out_channels)
+        self.exit3 = Exit(self.model.features.denseblock3, 1024, out_channels)
         self.exit4 = Exit4(self.model.features.denseblock4, self.model.features.norm5, out_channels)
+
+        self.transistion1 = self.model.features.transition1
+        self.transistion2 = self.model.features.transition2
+        self.transistion3 = self.model.features.transition3
         
 
     def forward(self, x):
@@ -40,16 +43,17 @@ class BDenseNet(nn.Module):
         p, x = self.exit1(x)
         timings.append((perf_counter()-time_start)*1000)
         predictions.append(p)
-        
+        x = self.transistion1(x)
 
         p, x = self.exit2(x)
         timings.append((perf_counter()-time_start)*1000)
         predictions.append(p)
+        x = self.transistion2(x)
         
-
         p, x = self.exit3(x)
         timings.append((perf_counter()-time_start)*1000)
         predictions.append(p)
+        x = self.transistion3(x)
 
         p = self.exit4(x)
         timings.append((perf_counter()-time_start)*1000)
@@ -76,19 +80,17 @@ class Exit4(nn.Module):
         return p
 
 class Exit(nn.Module):
-    def __init__(self, base_model, transistion_layer, output_size, out_channels):
+    def __init__(self, base_model, output_size, out_channels):
         super(Exit, self).__init__()
 
         self.base = base_model
         self.pool = nn.AdaptiveAvgPool2d(1)
-        self.transistion_layer = transistion_layer
         self.clf = nn.Linear(output_size, out_channels)
 
     def forward(self, x):
         batch = x.shape[0]
 
         x = self.base(x)
-        x = self.transistion_layer(x)
         p = self.pool(x)
         p = self.clf(p.view(batch,-1))
         

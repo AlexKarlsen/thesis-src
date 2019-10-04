@@ -17,6 +17,9 @@ def get_dataset(dataset_root, dataset, batch_size, n_classes=10, is_cuda=True):
         train_loader, test_loader = get_imagenet(dataset_root, batch_size, is_cuda)
     elif dataset == 'miniimagenet':
         train_loader, test_loader = get_miniimagenet(dataset_root, batch_size, n_classes, is_cuda)
+    elif dataset == 'miniimagenet-test-only':
+        _, test_loader = get_miniimagenet_test_only(dataset_root, batch_size, n_classes, is_cuda)
+        return _, test_loader
     else:
         raise ValueError('Dataset `{}` not found'.format(dataset))
 
@@ -125,4 +128,29 @@ def get_miniimagenet(dataset_root, batch_size, n_classes, is_cuda=True):
         dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size, shuffle=shuffle[x], drop_last=False, **kwargs) for x in ['train', 'val']}
 
         return dataloaders['train'], dataloaders['val']
-        
+    
+def get_miniimagenet_test_only(dataset_root, batch_size, n_classes, is_cuda=True):
+    kwargs = {'num_workers': 4, 'pin_memory': True} if is_cuda else {}
+    data_dir = 'imagenet'
+
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                std=[0.229, 0.224, 0.225])
+
+    data_transforms = {
+        'val': transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            normalize
+        ])
+    }
+    
+    shuffle = {
+    'val': False
+    }
+
+    image_datasets = {x: MiniImageNet(os.path.join(dataset_root, data_dir), x, n_classes, transform=data_transforms[x]) for x in ['val']}
+
+    dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size, shuffle=shuffle[x], drop_last=False, **kwargs) for x in ['val']}
+
+    return None, dataloaders['val']

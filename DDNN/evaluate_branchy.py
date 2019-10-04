@@ -33,10 +33,11 @@ class threshold_tester():
              score, 
              time])), ignore_index = True)
         
-    def confidence_threshold(self, name, threshold_range, model, test_loader):
+    def confidence_threshold(self, name, threshold_range, model, test_loader, device):
         for test, threshold in enumerate(threshold_range):
             for sample, (data, target) in enumerate(tqdm(test_loader, leave=False, unit='batch', desc='Testing confidence threshold = {}'.format(threshold))):
-                data, target = data.cuda(), target.cuda()
+                if device == 'cuda:0':
+                    data, target = data.cuda(), target.cuda()
                 predictions, timings = model(data)
 
                 for n_exit, (pred, time) in enumerate(zip(predictions, timings)):
@@ -52,10 +53,11 @@ class threshold_tester():
                     self.log(name, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, score.view(-1)[0].item(), time)
             self.save(name)
             
-    def score_margin_threshold(self, name, threshold_range, model, test_loader):
+    def score_margin_threshold(self, name, threshold_range, model, test_loader, device):
         for test, threshold in enumerate(threshold_range):
             for sample, (data, target) in enumerate(tqdm(test_loader, leave=False, unit='batch', desc='Testing score margin threshold = {}'.format(threshold))):
-                data, target = data.cuda(), target.cuda()
+                if device == 'cuda:0':
+                    data, target = data.cuda(), target.cuda()
                 predictions, timings = model(data)
 
                 for n_exit, (pred, time) in enumerate(zip(predictions, timings)):
@@ -86,7 +88,7 @@ if __name__ == '__main__':
                         help='input batch size for training (default: 1000)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--model_path', default='models/dense/miniimagenet_10_20191001-121910_model.pth',
+    parser.add_argument('--model_path', default='models/resnet/miniimagenet_10_20190926-135000_model.pth',
                         help='output directory')
     args = parser.parse_args()
 
@@ -97,11 +99,15 @@ if __name__ == '__main__':
     torch.manual_seed(args.seed)
     if device == 'cuda:0':
         torch.cuda.manual_seed(args.seed)
+        model = torch.load(args.model_path)
+    else:
+        model = torch.load(args.model_path, map_location=torch.device('cpu'))
 
     _, test_loader = datasets.get_dataset(args.dataset_root, args.dataset, args.batch_size, args.n_classes, device)
     x, _ = test_loader.__iter__().next()
 
-    model = torch.load(args.model_path)
+    
+    
     
     # load on GPU
     model = model.to(device)
@@ -112,8 +118,8 @@ if __name__ == '__main__':
 
     thresholds = np.arange(0.1, 1, 0.1)
     with torch.no_grad():
-        tester.confidence_threshold(args.name + '_confidence', thresholds, model, test_loader)
-        tester.score_margin_threshold(args.name + '_score_margin', thresholds, model, test_loader)
+        tester.confidence_threshold(args.name + '_confidence', thresholds, model, test_loader, device)
+        tester.score_margin_threshold(args.name + '_score_margin', thresholds, model, test_loader, device)
         
         
     
