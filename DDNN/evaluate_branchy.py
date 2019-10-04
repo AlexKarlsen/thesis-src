@@ -88,7 +88,7 @@ if __name__ == '__main__':
                         help='input batch size for training (default: 1000)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--model_path', default='models/resnet/miniimagenet_10_20190926-135000_model.pth',
+    parser.add_argument('--model_path', default='models/densenet/miniimagenet_10_20191004-133417_model.pth',
                         help='output directory')
     args = parser.parse_args()
 
