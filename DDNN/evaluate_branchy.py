@@ -37,12 +37,11 @@ class threshold_tester():
              time])), ignore_index = True)
         
     def confidence_threshold(self, name, threshold_range, model, test_loader, device):
-        for test, threshold in enumerate(threshold_range):
-            for sample, (data, target) in enumerate(tqdm(test_loader, leave=False, unit='batch', desc='Testing confidence threshold = {}'.format(threshold))):
-                if device.type == 'cuda':
-                    data, target = data.cuda(), target.cuda()
-                predictions, timings = model(data)
-
+        for sample, (data, target) in enumerate(tqdm(test_loader, leave=False, unit='batch', desc='Testing confidence threshold')):
+            if device.type == 'cuda':
+                data, target = data.cuda(), target.cuda()
+            predictions, timings = model(data)
+            for test, threshold in enumerate(threshold_range):
                 for n_exit, (pred, time) in enumerate(zip(predictions, timings)):
 
                     score = F.softmax(pred, dim=1)
@@ -57,11 +56,12 @@ class threshold_tester():
             self.save(name)
             
     def score_margin_threshold(self, name, threshold_range, model, test_loader, device):
-        for test, threshold in enumerate(threshold_range):
-            for sample, (data, target) in enumerate(tqdm(test_loader, leave=False, unit='batch', desc='Testing score margin threshold = {}'.format(threshold))):
-                if device.type == 'cuda':
-                    data, target = data.cuda(), target.cuda()
-                predictions, timings = model(data)
+        for sample, (data, target) in enumerate(tqdm(test_loader, leave=False, unit='batch', desc='Testing score margin threshold = {}')):
+            if device.type == 'cuda':
+                data, target = data.cuda(), target.cuda()
+            predictions, timings = model(data)
+            for test, threshold in enumerate(threshold_range):
+            
 
                 for n_exit, (pred, time) in enumerate(zip(predictions, timings)):
 
