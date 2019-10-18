@@ -19,6 +19,9 @@ class threshold_tester():
     
     def save(self, name):
         self.df.to_csv(os.path.join('logging', 'threshold_test', name + '.csv'))
+
+    def reset_log(self):
+        self.df = pd.DataFrame(columns=self.cols)
     
     def log(self, name, threshold, test, n_exit, sample, exited, prediction, target, correct, score, time):
         self.df = self.df.append(dict(zip(self.cols,[
@@ -116,6 +119,7 @@ if __name__ == '__main__':
     thresholds = np.arange(0.1, 1, 0.1)
     with torch.no_grad():
         tester.confidence_threshold(args.name + '_confidence', thresholds, model, test_loader, device)
+        tester.reset_log()
         tester.score_margin_threshold(args.name + '_score_margin', thresholds, model, test_loader, device)
         
         
