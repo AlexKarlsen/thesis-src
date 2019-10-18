@@ -36,7 +36,7 @@ class threshold_tester():
     def confidence_threshold(self, name, threshold_range, model, test_loader, device):
         for test, threshold in enumerate(threshold_range):
             for sample, (data, target) in enumerate(tqdm(test_loader, leave=False, unit='batch', desc='Testing confidence threshold = {}'.format(threshold))):
-                if device == 'cuda:0':
+                if device.type == 'cuda':
                     data, target = data.cuda(), target.cuda()
                 predictions, timings = model(data)
 
@@ -56,7 +56,7 @@ class threshold_tester():
     def score_margin_threshold(self, name, threshold_range, model, test_loader, device):
         for test, threshold in enumerate(threshold_range):
             for sample, (data, target) in enumerate(tqdm(test_loader, leave=False, unit='batch', desc='Testing score margin threshold = {}'.format(threshold))):
-                if device == 'cuda:0':
+                if device.type == 'cuda':
                     data, target = data.cuda(), target.cuda()
                 predictions, timings = model(data)
 
@@ -88,7 +88,7 @@ if __name__ == '__main__':
                         help='input batch size for training (default: 1000)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--model_path', default='models/densenet/miniimagenet_10_20191004-133417_model.pth',
+    parser.add_argument('--model_path', default='models/densenet/miniimagenet_10_20191018-092816_model.pth',
                         help='output directory')
     args = parser.parse_args()
 
@@ -97,7 +97,7 @@ if __name__ == '__main__':
 
     # seed???
     torch.manual_seed(args.seed)
-    if device == 'cuda:0':
+    if device.type == 'cuda':
         torch.cuda.manual_seed(args.seed)
         model = torch.load(args.model_path)
     else:
@@ -106,9 +106,6 @@ if __name__ == '__main__':
     _, test_loader = datasets.get_dataset(args.dataset_root, args.dataset, args.batch_size, args.n_classes, device)
     x, _ = test_loader.__iter__().next()
 
-    
-    
-    
     # load on GPU
     model = model.to(device)
 
