@@ -7,7 +7,7 @@ import pandas as pd
 import os
 
 #import branchymodels.BResNet
-import datasets
+from datasets import datasets
 
 from torch.autograd import Variable
 import torch.nn.functional as F
