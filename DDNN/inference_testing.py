@@ -15,7 +15,7 @@ from datasets import datasets
 
 class inference_test():
     def __init__(self):
-        self.cols = ['exit', 'prediction', 'target', 'correct', 'score', 'time']
+        self.cols = ['exit', 'prediction', 'target', 'correct', 'score_margin', 'time']
         self.df = pd.DataFrame(columns=self.cols)
     
     def save(self, name):
@@ -68,7 +68,7 @@ class inference_test():
             score_margin = self.score_margin(probability)
             if score_margin > threshold:
                 prediction = prediction.data.max(1, keepdim=True)[1]
-                return 0, prediction.view(-1).item(), score[0][0].item(), perf_counter() - time_start
+                return 0, prediction.view(-1).item(), score_margin, perf_counter() - time_start
             data = model.transistion1(data)
 
             ### Exit1 ###
@@ -78,7 +78,7 @@ class inference_test():
             score_margin = self.score_margin(probability)
             if score_margin > threshold:
                 prediction = prediction.data.max(1, keepdim=True)[1]
-                return 1, prediction.view(-1).item(), score[0][0].item(), perf_counter() - time_start
+                return 1, prediction.view(-1).item(), score_margin, perf_counter() - time_start
             data = model.transistion2(data)
 
             ### Exit 2 ###
@@ -88,14 +88,16 @@ class inference_test():
             score_margin = self.score_margin(probability)
             if score_margin > threshold:
                 prediction = prediction.data.max(1, keepdim=True)[1]
-                return 2, prediction.view(-1).item(), score[0][0].item(), perf_counter() - time_start
+                return 2, prediction.view(-1).item(), score_margin, perf_counter() - time_start
             data = model.transistion3(data)
 
             ### Exit 3 ###
             prediction = model.exit4(data)
             score = F.softmax(prediction, dim=1)
             prediction = prediction.data.max(1, keepdim=True)[1]
-            return 3, prediction.view(-1).item(), score[0][0].item(), perf_counter() - time_start
+            probability, label = topk(score, k=2)
+            score_margin = self.score_margin(probability)
+            return 3, prediction.view(-1).item(), score_margin, perf_counter() - time_start
 
     def score_margin(self, score):
         score_margin = (score[0][0] - score[0][1]).item()
