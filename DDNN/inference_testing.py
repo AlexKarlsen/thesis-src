@@ -56,6 +56,34 @@ class inference_test():
             prediction = prediction.data.max(1, keepdim=True)[1]
             return 3, prediction.view(-1).item(), score[0][0].item(), perf_counter() - time_start
 
+    def early_exiting_densenet(self, model, threshold, data, target):   
+        time_start = perf_counter()
+        model.eval()
+        with torch.no_grad():
+            prediction, data = model.exit1(data)
+            score = F.softmax(prediction, dim=1)
+            if self.score_margin(score) > threshold:
+                prediction = prediction.data.max(1, keepdim=True)[1]
+                return 0, prediction.view(-1).item(), score[0][0].item(), perf_counter() - time_start
+            data = model.transistion1(data)
+            prediction, data = model.exit2(data)
+            score = F.softmax(prediction, dim=1)
+            if self.score_margin(score) > threshold:
+                prediction = prediction.data.max(1, keepdim=True)[1]
+                return 1, prediction.view(-1).item(), score[0][0].item(), perf_counter() - time_start
+            data = model.transistion2(data)
+            prediction, data = model.exit3(data)
+            score = F.softmax(prediction, dim=1)
+            if self.score_margin(score) > threshold:
+                prediction = prediction.data.max(1, keepdim=True)[1]
+                return 2, prediction.view(-1).item(), score[0][0].item(), perf_counter() - time_start
+            data = model.transistion3(data)
+            prediction = model.exit4(data)
+            score = F.softmax(prediction, dim=1)
+        
+            prediction = prediction.data.max(1, keepdim=True)[1]
+            return 3, prediction.view(-1).item(), score[0][0].item(), perf_counter() - time_start
+
     def score_margin(self, score):
         score_margin = (score[0][0].item() - score[0][1].item())
         return score_margin
@@ -63,7 +91,7 @@ class inference_test():
     def run(self, name,  threshold, model, test_loader):
         for (data, target) in tqdm(test_loader, leave=False, unit='batch'):
             data, target = data.cuda(), target.cuda()
-            n_exit, prediction, score, time =  self.early_exiting(model, threshold, data, target)
+            n_exit, prediction, score, time =  self.early_exiting_densenet(model, threshold, data, target)
             correct = (prediction == target).view(-1).item()
             self.log(n_exit, prediction, target.view(-1).item(), correct, score, time)
         self.save(name)
@@ -80,7 +108,7 @@ if __name__ == '__main__':
                         help='input batch size for training (default: 1000)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--model_path', default='models/resnet/miniimagenet_10_20191018-154501_model.pth',
+    parser.add_argument('--model_path', default='models/densenet/miniimagenet_100_20191018-165914_model.pth',
                         help='output directory')
     args = parser.parse_args()
 
