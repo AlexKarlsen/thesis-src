@@ -15,16 +15,19 @@ import torch.nn.functional as F
 class threshold_tester():
     def __init__(self):
         self.cols = ['threshold', 'test', 'exit', 'sample', 'exited', 'prediction', 'target', 'correct', 'score', 'time']
-        self.df = pd.DataFrame(columns=self.cols)
+        # self.df = pd.DataFrame(columns=self.cols)
     
-    def save(self, name):
-        self.df.to_csv(os.path.join('logging', 'threshold_test', name + '.csv'))
+    def save(self, name, dataframe):
+        dataframe.to_csv(os.path.join('logging', 'threshold_test', name + '.csv'))
 
     def reset_log(self):
         self.df = pd.DataFrame(columns=self.cols)
+
+    def create_log(self):
+        return pd.DataFrame(columns=self.cols)
     
-    def log(self, name, threshold, test, n_exit, sample, exited, prediction, target, correct, score, time):
-        self.df = self.df.append(dict(zip(self.cols,[
+    def log(self, dataframe, threshold, test, n_exit, sample, exited, prediction, target, correct, score, time):
+        dataframe = dataframe.append(dict(zip(self.cols,[
              threshold, 
              test, 
              n_exit, 
@@ -35,49 +38,39 @@ class threshold_tester():
              correct, 
              score, 
              time])), ignore_index = True)
+            
+        return dataframe
         
-    def confidence_threshold(self, name, threshold_range, model, test_loader, device):
-        for sample, (data, target) in enumerate(tqdm(test_loader, leave=False, unit='batch', desc='Testing confidence threshold')):
-            if device.type == 'cuda':
-                data, target = data.cuda(), target.cuda()
-            predictions, timings = model(data)
-            for test, threshold in enumerate(threshold_range):
-                for n_exit, (pred, time) in enumerate(zip(predictions, timings)):
+    # def confidence_threshold(self, name, threshold_range, model, test_loader, device):
+    #         for test, threshold in enumerate(threshold_range):
+    #             for n_exit, (pred, time) in enumerate(zip(predictions, timings)):
 
-                    score = F.softmax(pred, dim=1)
-                    probability, label = topk(score, k=5)
-                    correct = (label.view(-1)[0].item() == target.view(-1).item())
-
-                    if torch.max(probability).item() > threshold: # if model confidence it higher than threshold value
-                        exited = 1
-                    else:
-                        exited = 0
-                    self.log(name, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, score.view(-1)[0].item(), time)
-            self.save(name)
+    #                 if torch.max(probability).item() > threshold: # if model confidence it higher than threshold value
+    #                     exited = 1
+    #                 else:
+    #                     exited = 0
+    #                 self.log(name, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, score.view(-1)[0].item(), time)
+    #         self.save(name)
             
-    def score_margin_threshold(self, name, threshold_range, model, test_loader, device):
-        for sample, (data, target) in enumerate(tqdm(test_loader, leave=False, unit='batch', desc='Testing score margin threshold = {}')):
-            if device.type == 'cuda':
-                data, target = data.cuda(), target.cuda()
-            predictions, timings = model(data)
-            for test, threshold in enumerate(threshold_range):
+    # def score_margin_threshold(self, name, threshold_range, model, test_loader, device):
+    #         for test, threshold in enumerate(threshold_range):
             
 
-                for n_exit, (pred, time) in enumerate(zip(predictions, timings)):
+    #             for n_exit, (pred, time) in enumerate(zip(predictions, timings)):
 
-                    score = F.softmax(pred, dim=1)
-                    # I should try to do like in train script if I keep getting too good results...
-                    probability, label = topk(score, k=5)
-                    correct = (label.view(-1)[0].item() == target.view(-1).item())
+    #                 score = F.softmax(pred, dim=1)
+    #                 # I should try to do like in train script if I keep getting too good results...
+    #                 probability, label = topk(score, k=5)
+    #                 correct = (label.view(-1)[0].item() == target.view(-1).item())
                     
-                    score_margin = (probability[0][0] - probability[0][1]).item()
+    #                 score_margin = (probability[0][0] - probability[0][1]).item()
 
-                    if score_margin > threshold: # if model confidence it higher than threshold value
-                        exited = 1
-                    else:
-                        exited = 0
-                    self.log(name, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, score.view(-1)[0].item(), time)
-            self.save(name)
+    #                 if score_margin > threshold: # if model confidence it higher than threshold value
+    #                     exited = 1
+    #                 else:
+    #                     exited = 0
+    #                 self.log(name, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, score.view(-1)[0].item(), time)
+    #         self.save(name)
 
 if __name__ == '__main__':
     # Training settings
@@ -115,12 +108,43 @@ if __name__ == '__main__':
     model.eval()
 
     tester = threshold_tester()
+    confidence_log = tester.create_log()
+    score_margin_log = tester.create_log()
 
-    thresholds = np.arange(0.1, 1, 0.1)
+    thresholds = np.linspace(0.1, 0.9, 9)
     with torch.no_grad():
-        tester.confidence_threshold(args.name + '_confidence', thresholds, model, test_loader, device)
-        tester.reset_log()
-        tester.score_margin_threshold(args.name + '_score_margin', thresholds, model, test_loader, device)
+        for sample, (data, target) in enumerate(tqdm(test_loader, leave=False, unit='batch', desc='Testing thresholds')):
+            if device.type == 'cuda':
+                data, target = data.cuda(), target.cuda()
+            predictions, timings = model(data)
+
+            for test, threshold in enumerate(thresholds):
+                for n_exit, (pred, time) in enumerate(zip(predictions, timings)):
+
+                    score = F.softmax(pred, dim=1)
+                    probability, label = topk(score, k=5)
+                    correct = (label.view(-1)[0].item() == target.view(-1).item())
+
+                    ## confidence test
+                    if torch.max(probability).item() > threshold: # if model confidence it higher than threshold value
+                        exited = 1
+                    else:
+                        exited = 0
+                    confidence_log = tester.log(confidence_log, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, score.view(-1)[0].item(), time)
+
+                    #tester.reset_log()
+
+                    ## Score margin test
+                    score_margin = (probability[0][0] - probability[0][1]).item()
+                    if score_margin > threshold: # if model confidence it higher than threshold value
+                        exited = 1
+                    else:
+                        exited = 0
+                    score_margin_log = tester.log(score_margin_log, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, score.view(-1)[0].item(), time)
+        
+    tester.save(args.name + '_confidence1', confidence_log)
+    tester.save(args.name + '_score_margin1', score_margin_log)
+    #tester.score_margin_threshold(args.name + '_score_margin', thresholds, model, test_loader, device)
         
         
     
