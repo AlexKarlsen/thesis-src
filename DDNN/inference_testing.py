@@ -60,32 +60,45 @@ class inference_test():
         time_start = perf_counter()
         model.eval()
         with torch.no_grad():
+
+            ### Exit0 ###
             prediction, data = model.exit1(data)
             score = F.softmax(prediction, dim=1)
-            if self.score_margin(score) > threshold:
+            probability, label = topk(score, k=2)
+            score_margin = self.score_margin(probability)
+            if score_margin > threshold:
                 prediction = prediction.data.max(1, keepdim=True)[1]
                 return 0, prediction.view(-1).item(), score[0][0].item(), perf_counter() - time_start
             data = model.transistion1(data)
+
+            ### Exit1 ###
             prediction, data = model.exit2(data)
             score = F.softmax(prediction, dim=1)
-            if self.score_margin(score) > threshold:
+            probability, label = topk(score, k=2)
+            score_margin = self.score_margin(probability)
+            if score_margin > threshold:
                 prediction = prediction.data.max(1, keepdim=True)[1]
                 return 1, prediction.view(-1).item(), score[0][0].item(), perf_counter() - time_start
             data = model.transistion2(data)
+
+            ### Exit 2 ###
             prediction, data = model.exit3(data)
             score = F.softmax(prediction, dim=1)
-            if self.score_margin(score) > threshold:
+            probability, label = topk(score, k=2)
+            score_margin = self.score_margin(probability)
+            if score_margin > threshold:
                 prediction = prediction.data.max(1, keepdim=True)[1]
                 return 2, prediction.view(-1).item(), score[0][0].item(), perf_counter() - time_start
             data = model.transistion3(data)
+
+            ### Exit 3 ###
             prediction = model.exit4(data)
             score = F.softmax(prediction, dim=1)
-        
             prediction = prediction.data.max(1, keepdim=True)[1]
             return 3, prediction.view(-1).item(), score[0][0].item(), perf_counter() - time_start
 
     def score_margin(self, score):
-        score_margin = (score[0][0].item() - score[0][1].item())
+        score_margin = (score[0][0] - score[0][1]).item()
         return score_margin
        
     def run(self, name,  threshold, model, test_loader):
