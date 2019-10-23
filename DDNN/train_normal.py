@@ -17,16 +17,15 @@ import pandas as pd
 from logger import Logger
 
 from datasets import datasets
-from branchymodels.BResNet import BResNet as  net
+from conventionalmodels.resnet import ResNet as  net
 
-def train(model, branch_weights, train_loader, optimizer):
+def train(model, train_loader, optimizer):
 
     # setting to train mode. This could be refactored see transfer learning tutorial
     model.train()
 
-    model_losses = np.zeros(model.branches)
-    num_correct = np.zeros(model.branches)
-    timings_arr = []
+    running_loss = 0.0
+    running_corrects = 0
 
     # start timing training
     time_start = perf_counter()
@@ -40,20 +39,17 @@ def train(model, branch_weights, train_loader, optimizer):
         optimizer.zero_grad()
 
         # run model on input
-        predictions, timings = model(data)
-        total_loss = 0
-        # for each branch prediction, add to loss
-        for i, (prediction, weight) in enumerate(zip(predictions, branch_weights)):
-            # compute the loss
-            loss = F.cross_entropy(prediction, target)
-            # add loss to list
-            model_losses[i] += loss.sum()*len(target)
-            total_loss += (loss * weight)
-            #what exactly happens here?
-            pred = prediction.data.max(1, keepdim=True)[1]
-            correct = (pred.view(-1) == target.view(-1)).long().sum().item()
-            num_correct[i] += correct
-            timings_arr.append(timings)
+        prediction, timing = model(data)
+
+        # compute the loss
+        loss = F.cross_entropy(prediction, target)
+
+        # statistics
+        running_loss += loss.item() * inputs.size(0)
+        running_corrects += torch.sum(preds == labels.data)
+
+        pred = prediction.data.max(1, keepdim=True)[1]
+        correct = (pred.view(-1) == target.view(-1)).long().sum().item()
 
         # backpropagate
         total_loss.backward()
@@ -61,20 +57,14 @@ def train(model, branch_weights, train_loader, optimizer):
 
     N = len(train_loader.dataset)
 
+    epoch_loss = running_loss / N
+    epoch_acc = running_corrects.double() / N
+
     time_run = perf_counter() - time_start
 
-    # return losses and scores for visualization
-    model_losses = [i.item() / N for i in model_losses]
-    scores = [i / N for i in num_correct]
-    print('-' * 90)
-    loss_str = ', '.join(['branch-{}: {:.4f}'.format(i, loss)
-                        for i, loss in enumerate(model_losses)])
-    acc_str = ', '.join(['branch-{}: {:.4f}'.format(i, correct)
-                        for i, correct in enumerate(scores)])
-    print('Train Time: {:.0f}s'.format(time_run))                        
-    print('Train Loss: [{}]'.format(loss_str))
-    print('Train Acc.: [{}]'.format(acc_str))
-    print('-' * 90)
+    print('{} Loss: {:.4f} Acc: {:.4f} Time {:.0f}m {:.0f}s'.format(
+    'Training', epoch_loss, epoch_acc, time_run // 60, time_elapsed % 60))
+
 
     return model_losses, scores, np.mean(timings_arr, axis=0)
 
@@ -146,7 +136,7 @@ def train_model(model, name, model_path, train_loader, test_loader, lr, epochs, 
         print('[Epoch {}/{}]'.format(epoch,epochs))
 
         # Run train and test and get data
-        train_loss, train_acc, train_time = train(model, branch_weights, train_loader, optimizer)
+        train_loss, train_acc, train_time = train(model, train_loader, optimizer)
         test_loss, test_acc, test_time = test(model, test_loader)
 
         # Save best model i.e. early stopping
@@ -157,7 +147,7 @@ def train_model(model, name, model_path, train_loader, test_loader, lr, epochs, 
             torch.save(model, model_path)
 
         # log epoch stats
-        logger.log(train_loss, train_acc, train_time, test_loss, test_acc, test_time)
+        # logger.log(train_loss, train_acc, train_time, test_loss, test_acc, test_time)
 
         scheduler.step()
 

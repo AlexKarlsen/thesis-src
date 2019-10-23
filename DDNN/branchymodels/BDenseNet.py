@@ -14,8 +14,7 @@ class BDenseNet(nn.Module):
 
         self.branches = 4
 
-        self.model = models.densenet121(pretrained=pretrained)
-        
+        self.model = models.densenet121(pretrained=pretrained)     
         exit1 = nn.Sequential(
             self.model.features.conv0,
             self.model.features.norm0,
@@ -31,8 +30,7 @@ class BDenseNet(nn.Module):
 
         self.transistion1 = self.model.features.transition1
         self.transistion2 = self.model.features.transition2
-        self.transistion3 = self.model.features.transition3
-        
+        self.transistion3 = self.model.features.transition3       
 
     def forward(self, x):
         predictions = []

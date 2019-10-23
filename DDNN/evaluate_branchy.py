@@ -16,7 +16,7 @@ class threshold_tester():
     def __init__(self):
         self.cols = ['threshold', 'test', 'exit', 'sample', 'exited', 'prediction', 'target', 'correct', 'score', 'time']
         # self.df = pd.DataFrame(columns=self.cols)
-    
+
     def save(self, name, dataframe):
         dataframe.to_csv(os.path.join('logging', 'threshold_test', name + '.csv'))
 
@@ -25,7 +25,7 @@ class threshold_tester():
 
     def create_log(self):
         return pd.DataFrame(columns=self.cols)
-    
+
     def log(self, dataframe, threshold, test, n_exit, sample, exited, prediction, target, correct, score, time):
         dataframe = dataframe.append(dict(zip(self.cols,[
              threshold, 
@@ -75,7 +75,7 @@ class threshold_tester():
 if __name__ == '__main__':
     # Training settings
     parser = argparse.ArgumentParser(description='DDNN Evaluation')
-    parser.add_argument('--name', default='branchy', help='run name')
+    parser.add_argument('--name', default='branchy', help='resnet100')
     parser.add_argument('--dataset-root', default='datasets/', help='dataset root folder')
     parser.add_argument('--batch-size', type=int, default=1, metavar='N',
                         help='input batch size for training (default: 1)')
@@ -84,7 +84,7 @@ if __name__ == '__main__':
                         help='input batch size for training (default: 1000)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--model_path', default='models/densenet/miniimagenet_100_20191018-165914_model.pth',
+    parser.add_argument('--model_path', default='models/resnet/miniimagenet_100_20191022-170157_model.pth',
                         help='output directory')
     args = parser.parse_args()
 
