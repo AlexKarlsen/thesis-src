@@ -30,31 +30,46 @@ class inference_test():
              score, 
              time])), ignore_index = True)
 
-    def early_exiting(self, model, threshold, data, target):   
+    def early_exiting_resnet(self, model, threshold, data, target):   
         time_start = perf_counter()
         model.eval()
         with torch.no_grad():
+
+            ### Exit0 ###
             data = model.conv1(data)
             prediction, data = model.exit1(data)
             score = F.softmax(prediction, dim=1)
-            if self.score_margin(score) > threshold:
+            probability, label = topk(score, k=2)
+            score_margin = self.score_margin(probability)
+            if score_margin) > threshold:
                 prediction = prediction.data.max(1, keepdim=True)[1]
-                return 0, prediction.view(-1).item(), score[0][0].item(), perf_counter() - time_start
+                return 0, prediction.view(-1).item(), score_margin, perf_counter() - time_start
+
+            ### Exit1 ###
             prediction, data = model.exit2(data)
             score = F.softmax(prediction, dim=1)
-            if self.score_margin(score) > threshold:
+            probability, label = topk(score, k=2)
+            score_margin = self.score_margin(probability)
+            if score_margin > threshold:
                 prediction = prediction.data.max(1, keepdim=True)[1]
-                return 1, prediction.view(-1).item(), score[0][0].item(), perf_counter() - time_start
+                return 1, prediction.view(-1).item(), score_margin, perf_counter() - time_start
+
+            ### Exit3 ###
             prediction, data = model.exit3(data)
             score = F.softmax(prediction, dim=1)
-            if self.score_margin(score) > threshold:
+            probability, label = topk(score, k=2)
+            score_margin = self.score_margin(probability)
+            if score_margin > threshold:
                 prediction = prediction.data.max(1, keepdim=True)[1]
-                return 2, prediction.view(-1).item(), score[0][0].item(), perf_counter() - time_start
-            prediction, _ = model.exit4(data) # oops densenet must implement same structure...
+                return 2, prediction.view(-1).item(), score_margin, perf_counter() - time_start
+
+            ### Exit4 ###
+            prediction, _ = model.exit4(data)
             score = F.softmax(prediction, dim=1)
-        
+            probability, label = topk(score, k=2)
+            score_margin = self.score_margin(probability)
             prediction = prediction.data.max(1, keepdim=True)[1]
-            return 3, prediction.view(-1).item(), score[0][0].item(), perf_counter() - time_start
+            return 3, prediction.view(-1).item(), score_margin, perf_counter() - time_start
 
     def early_exiting_densenet(self, model, threshold, data, target):   
         time_start = perf_counter()
@@ -106,7 +121,7 @@ class inference_test():
     def run(self, name,  threshold, model, test_loader):
         for (data, target) in tqdm(test_loader, leave=False, unit='batch'):
             data, target = data.cuda(), target.cuda()
-            n_exit, prediction, score, time =  self.early_exiting(model, threshold, data, target)
+            n_exit, prediction, score, time =  self.early_exiting_resnet(model, threshold, data, target)
             correct = (prediction == target).view(-1).item()
             self.log(n_exit, prediction, target.view(-1).item(), correct, score, time)
         self.save(name)
