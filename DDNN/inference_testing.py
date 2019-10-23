@@ -41,7 +41,7 @@ class inference_test():
             score = F.softmax(prediction, dim=1)
             probability, label = topk(score, k=2)
             score_margin = self.score_margin(probability)
-            if score_margin) > threshold:
+            if score_margin > threshold:
                 prediction = prediction.data.max(1, keepdim=True)[1]
                 return 0, prediction.view(-1).item(), score_margin, perf_counter() - time_start
 
