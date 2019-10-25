@@ -14,6 +14,10 @@ class DenseNet(nn.Module):
         self.model = models.densenet121(pretrained=pretrained)
         self.clf = nn.Linear(1024, out_channels)
 
+        # freeze base
+        for param in self.model.parameters():
+            param.requires_grad = False
+
     def forward(self, x):
         batch = x.shape[0]
         time_start = perf_counter()

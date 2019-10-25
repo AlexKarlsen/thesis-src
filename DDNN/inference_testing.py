@@ -15,14 +15,15 @@ from datasets import datasets
 
 class inference_test():
     def __init__(self):
-        self.cols = ['exit', 'prediction', 'target', 'correct', 'score_margin', 'time']
+        self.cols = ['threshold', 'exit', 'prediction', 'target', 'correct', 'score_margin', 'time']
         self.df = pd.DataFrame(columns=self.cols)
     
     def save(self, name):
         self.df.to_csv(os.path.join('logging', 'threshold_test', name + '.csv'))
     
-    def log(self, n_exit, prediction, target, correct, score, time):
+    def log(self, threshold, n_exit, prediction, target, correct, score, time):
         self.df = self.df.append(dict(zip(self.cols,[
+            threshold,
              n_exit, 
              prediction,
              target, 
@@ -123,7 +124,7 @@ class inference_test():
             data, target = data.cuda(), target.cuda()
             n_exit, prediction, score, time =  self.early_exiting_resnet(model, threshold, data, target)
             correct = (prediction == target).view(-1).item()
-            self.log(n_exit, prediction, target.view(-1).item(), correct, score, time)
+            self.log(threshold, n_exit, prediction, target.view(-1).item(), correct, score, time)
         self.save(name)
 
 if __name__ == '__main__':
@@ -158,7 +159,7 @@ if __name__ == '__main__':
 
     tester = inference_test()
 
-    # thresholds = np.linspace(0.1, 0.9, 9)
-    # for threshold in thresholds:
-    tester.run(args.name + '_inference_test', 0.5, model, test_loader)
+    thresholds = np.linspace(0.1, 0.9, 9)
+    for threshold in thresholds:
+        tester.run(args.name + '_inference_test', threshold, model, test_loader)
     

@@ -10,8 +10,13 @@ from time import perf_counter # uses the most precise clock on OS
 class ResNet(nn.Module):
     def __init__(self, out_channels, pretrained=True):
         super(ResNet, self).__init__()
-        self.model = models.resnet50(pretrained=pretrained)
+        self.model = models.resnet101(pretrained=pretrained)
+        self.model = nn.Sequential(*list(self.model.children())[:-1])
         self.clf = nn.Linear(2048, out_channels)
+
+        # freeze base
+        for param in self.model.parameters():
+            param.requires_grad = False
 
     def forward(self, x):
         batch = x.shape[0]

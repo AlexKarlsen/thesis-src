@@ -44,35 +44,35 @@ def train(model, train_loader, optimizer):
         # compute the loss
         loss = F.cross_entropy(prediction, target)
 
-        # statistics
-        running_loss += loss.item() * inputs.size(0)
-        running_corrects += torch.sum(preds == labels.data)
-
         pred = prediction.data.max(1, keepdim=True)[1]
         correct = (pred.view(-1) == target.view(-1)).long().sum().item()
+        
+        # statistics
+        running_loss += loss.item() * data.size(0)
+        running_corrects += correct
+
 
         # backpropagate
-        total_loss.backward()
+        loss.backward()
         optimizer.step()
 
     N = len(train_loader.dataset)
 
     epoch_loss = running_loss / N
-    epoch_acc = running_corrects.double() / N
+    epoch_acc = running_corrects / N
 
     time_run = perf_counter() - time_start
 
     print('{} Loss: {:.4f} Acc: {:.4f} Time {:.0f}m {:.0f}s'.format(
-    'Training', epoch_loss, epoch_acc, time_run // 60, time_elapsed % 60))
+    'Training', epoch_loss, epoch_acc, time_run // 60, time_run % 60))
 
-
-    return model_losses, scores, np.mean(timings_arr, axis=0)
+    return epoch_loss, epoch_acc, time_run
 
 def test(model, test_loader):
     model.eval()
-    model_losses = np.zeros(model.branches)
-    num_correct = np.zeros(model.branches)
-    timings_arr = np.empty((0,4))
+
+    running_loss = 0.0
+    running_corrects = 0
     # start timing inference
     time_start = perf_counter()
 
@@ -81,56 +81,47 @@ def test(model, test_loader):
     with torch.no_grad():
         # iterate test data
         for data, target in tqdm(test_loader, leave=False, unit='batch', desc='Testing'):
-            data, target = data.cuda(), target.cuda()
-            predictions, timings = model(data)
+            if torch.cuda.is_available():
+                data, target = data.to(device), target.to(device)
 
-            # for all predictions
-            for i, prediction in enumerate(predictions):
-                # determine loss
-                loss = F.cross_entropy(prediction, target)
-                # get the most certain prediction
-                pred = prediction.data.max(1, keepdim=True)[1]
-                # correct prediction or not?
-                correct = (pred.view(-1) == target.view(-1)).long().sum().item()
-                # add to correct counter
-                num_correct[i] += correct
-                # add to loss counter
-                model_losses[i] += loss.sum()*len(target)
-                timings_arr = np.append(timings_arr, np.array([timings]),axis=0)
+            # run model on input
+            prediction, timing = model(data)
 
-    # end timing training
-    time_run = perf_counter() - time_start
-    
+            # compute the loss
+            loss = F.cross_entropy(prediction, target)
 
-    N = len(test_loader.dataset)
-    # return losses and scores for visualization
-    model_losses = [i.item() / N for i in model_losses]
-    scores = [i / N for i in num_correct]
+            pred = prediction.data.max(1, keepdim=True)[1]
+            correct = (pred.view(-1) == target.view(-1)).long().sum().item()
+            
+            # statistics
+            running_loss += loss.item() * data.size(0)
+            running_corrects += correct
 
-    loss_str = ', '.join(['branch-{}: {:.4f}'.format(i, loss)
-                        for i, loss in enumerate(model_losses)])
-    acc_str = ', '.join(['branch-{}: {:.4f}'.format(i, score)
-                        for i, score in enumerate(scores)])
-    print('Test time: {:.0f}s'.format(time_run))
-    print('Test Loss: [{}]'.format(loss_str))
-    print('Test Acc.: [{}]'.format(acc_str))
-    print('-' * 90)
+        N = len(test_loader.dataset)
 
-    return model_losses, scores, np.mean(timings_arr,axis=0)
+        epoch_loss = running_loss / N
+        epoch_acc = running_corrects / N
+
+        time_run = perf_counter() - time_start
+
+        print('{} Loss: {:.4f} Acc: {:.4f} Time {:.0f}m {:.0f}s'.format(
+        'Training', epoch_loss, epoch_acc, time_run // 60, time_run % 60))
+
+        return epoch_loss, epoch_acc, time_run
 
 def train_model(model, name, model_path, train_loader, test_loader, lr, epochs, branch_weights):
     # Data logging
-    logger = Logger(name, model.branches)
+    # logger = Logger(name, model.branches)
 
     #best_model_wts = copy.deepcopy(model.state_dict())
-    best_acc = np.zeros(model.branches)
+    best_acc = 0
 
     optimizer = SGD(model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=1e-4)
     scheduler = CosineAnnealingWarmRestarts(optimizer, epochs)
 
     # if model directory does not exits, then create it
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
- 
+
     # train test lop
     for epoch in range(1, epochs+1):
         print('[Epoch {}/{}]'.format(epoch,epochs))
@@ -140,7 +131,7 @@ def train_model(model, name, model_path, train_loader, test_loader, lr, epochs, 
         test_loss, test_acc, test_time = test(model, test_loader)
 
         # Save best model i.e. early stopping
-        if np.mean(test_acc) > np.mean(best_acc):
+        if test_acc > best_acc:
             best_acc = test_acc
             # best_model_wts = copy.deepcopy(model.state_dict())
             print('Saving new best model')
