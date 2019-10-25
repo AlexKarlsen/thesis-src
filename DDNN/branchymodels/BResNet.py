@@ -12,7 +12,7 @@ class BResNet(nn.Module):
 
         self.branches = 4
 
-        self.model = models.resnet50(pretrained=pretrained)
+        self.model = models.resnet101(pretrained=pretrained)
 
         self.conv1 = nn.Sequential(
             self.model.conv1,
