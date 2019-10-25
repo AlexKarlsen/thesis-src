@@ -121,7 +121,7 @@ class inference_test():
     def run(self, name,  threshold, model, test_loader):
         for (data, target) in tqdm(test_loader, leave=False, unit='batch'):
             data, target = data.cuda(), target.cuda()
-            n_exit, prediction, score, time =  self.early_exiting_densenet(model, threshold, data, target)
+            n_exit, prediction, score, time =  self.early_exiting_resnet(model, threshold, data, target)
             correct = (prediction == target).view(-1).item()
             self.log(n_exit, prediction, target.view(-1).item(), correct, score, time)
         self.save(name)
@@ -138,7 +138,7 @@ if __name__ == '__main__':
                         help='input batch size for training (default: 1000)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--model_path', default='models/densenet/miniimagenet_100_20191018-165914_model.pth',
+    parser.add_argument('--model_path', default='models/resnet101/miniimagenet_100_20191023-162944_model.pth',
                         help='output directory')
     args = parser.parse_args()
 
