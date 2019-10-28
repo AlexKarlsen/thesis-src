@@ -159,9 +159,9 @@ if __name__ == '__main__':
                         help='input batch size for training (default: 1000)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--model_path', default='models/resnet101/miniimagenet_100_20191023-162944_model.pth',
+    parser.add_argument('--model_path', default='models/densenet/miniimagenet_100_20191018-165914_model.pth',
                         help='output directory')
-    parser.add_argument('--model-type', default='early_exit_resnet', help='run name')
+    parser.add_argument('--model-type', default='early_exit_densenet', help='run name')
     args = parser.parse_args()
 
     # use cuda if available else use cpu
