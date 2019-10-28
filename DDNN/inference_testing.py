@@ -31,6 +31,14 @@ class inference_test():
              score, 
              time])), ignore_index = True)
 
+    def run_test(self, model_type, model, threshold, data, target):
+        if model_type == "early_exit_resnet":
+            return self.early_exiting_resnet(model, threshold, data, target)
+        elif model_type == "early_exit_densenet":
+            return self.early_exiting_densenet(model, threshold, data, target)
+        else:
+            return self.normal_inference(model, threshold, data, target)
+
     def early_exiting_resnet(self, model, threshold, data, target):   
         time_start = perf_counter()
         model.eval()
@@ -115,16 +123,28 @@ class inference_test():
             score_margin = self.score_margin(probability)
             return 3, prediction.view(-1).item(), score_margin, perf_counter() - time_start
 
+    def normal_inference(self, model, threshold, data, target):
+        time_start = perf_counter()
+        model.eval()
+        with torch.no_grad():
+            prediction, _ = model(data)
+            score = F.softmax(prediction, dim=1)
+            prediction = prediction.data.max(1, keepdim=True)[1]
+            probability, label = topk(score, k=2)
+            score_margin = self.score_margin(probability)
+            return 'conventional inference', prediction.view(-1).item(), score_margin, perf_counter() - time_start
+
     def score_margin(self, score):
         score_margin = (score[0][0] - score[0][1]).item()
         return score_margin
        
-    def run(self, name,  threshold, model, test_loader):
-        for (data, target) in tqdm(test_loader, leave=False, unit='batch'):
-            data, target = data.cuda(), target.cuda()
-            n_exit, prediction, score, time =  self.early_exiting_resnet(model, threshold, data, target)
-            correct = (prediction == target).view(-1).item()
-            self.log(threshold, n_exit, prediction, target.view(-1).item(), correct, score, time)
+    def run(self, name,  thresholds, model_type, model, test_loader):
+        for threshold in thresholds:
+            for (data, target) in tqdm(test_loader, leave=False, unit='batch'):
+                data, target = data.cuda(), target.cuda()
+                n_exit, prediction, score, time =  self.run_test(model_type, model, threshold, data, target)
+                correct = (prediction == target).view(-1).item()
+                self.log(threshold, n_exit, prediction, target.view(-1).item(), correct, score, time)
         self.save(name)
 
 if __name__ == '__main__':
@@ -141,6 +161,7 @@ if __name__ == '__main__':
                         help='random seed (default: 1)')
     parser.add_argument('--model_path', default='models/resnet101/miniimagenet_100_20191023-162944_model.pth',
                         help='output directory')
+    parser.add_argument('--model-type', default='early_exit_resnet', help='run name')
     args = parser.parse_args()
 
     # use cuda if available else use cpu
@@ -160,6 +181,6 @@ if __name__ == '__main__':
     tester = inference_test()
 
     thresholds = np.linspace(0.1, 0.9, 9)
-    for threshold in thresholds:
-        tester.run(args.name + '_inference_test', threshold, model, test_loader)
+    
+    tester.run(args.name + '_inference_test', thresholds, args.model_type, model, test_loader)
     
