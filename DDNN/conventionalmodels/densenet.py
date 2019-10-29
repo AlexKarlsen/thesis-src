@@ -12,6 +12,7 @@ class DenseNet(nn.Module):
     def __init__(self, out_channels, pretrained=True):
         super(DenseNet, self).__init__()
         self.model = models.densenet121(pretrained=pretrained)
+        self.model = nn.Sequential(*list(self.model.children())[:-1])
         self.clf = nn.Linear(1024, out_channels)
 
         # freeze base
@@ -22,6 +23,8 @@ class DenseNet(nn.Module):
         batch = x.shape[0]
         time_start = perf_counter()
         x = self.model(x)
+        x = F.adaptive_avg_pool2d(x, (1, 1))
+        x = torch.flatten(x, 1)
         pred = self.clf(x.view(batch,-1))
         time_end = perf_counter()
         return pred, time_end - time_start

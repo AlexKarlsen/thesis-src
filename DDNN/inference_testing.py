@@ -159,9 +159,9 @@ if __name__ == '__main__':
                         help='input batch size for training (default: 1000)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--model_path', default='models/densenet/miniimagenet_100_20191018-165914_model.pth',
+    parser.add_argument('--model_path', default='models/dense_conv/miniimagenet_100_20191028-161439_model.pth',
                         help='output directory')
-    parser.add_argument('--model-type', default='early_exit_densenet', help='run name')
+    parser.add_argument('--model-type', default='None', help='run name')
     args = parser.parse_args()
 
     # use cuda if available else use cpu
@@ -180,7 +180,8 @@ if __name__ == '__main__':
 
     tester = inference_test()
 
-    thresholds = np.linspace(0.1, 0.9, 9)
+    #thresholds = np.linspace(0.1, 0.9, 9)
+    thresholds =[0.5]
     
     tester.run(args.name + '_inference_test', thresholds, args.model_type, model, test_loader)
     

@@ -17,7 +17,7 @@ import pandas as pd
 from logger import Logger
 
 from datasets import datasets
-from conventionalmodels.resnet import ResNet as  net
+from conventionalmodels.densenet import DenseNet as  net
 
 def train(model, train_loader, optimizer):
 
