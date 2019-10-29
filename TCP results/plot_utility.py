@@ -7,21 +7,23 @@ sns.set()
 
 def draw_average_overhead_per_img(cfg, overhead_list):
     x = np.arange(len(cfg.scenario))
-    width = 0.3
+    #width = 0.3
 
     mean_overhead = np.mean(overhead_list, axis=2)
     std_overhead = np.std(overhead_list, axis=2)
 
     for idx, size in enumerate(cfg.chunk_size):
-        xx = x - width/2 if idx == 0 else x + width/2
-        plt.bar(xx, mean_overhead[idx,:], width=width, yerr=std_overhead[idx,:])
+        #xx = x - width/2 if idx == 0 else x + width/2
+        plt.bar(x, mean_overhead[idx,:], yerr=std_overhead[idx,:])
 
     plt.ylabel('Average TCP overhead per image (frames)')
     plt.xlabel('Transmission scenarios')
     plt.xticks(x, cfg.scenario)
     #plt.title('Average {} transmission latency'.format(protocol))
 
-    plt.legend(['chunk size 1024 bytes', 'chunk size 4096 bytes'])
+    #plt.legend([
+        #'chunk size 1024 bytes', 
+    #    'chunk size 4096 bytes'])
     plt.show()
 
 def draw_histogram_overhead_per_img(cfg, overhead_list):
@@ -34,8 +36,10 @@ def draw_histogram_overhead_per_img(cfg, overhead_list):
 
     ax.set_ylabel('Density', fontsize=12)
     ax.set_xlabel('TCP overhead (frames)', fontsize=12)
-    ax.set_title('Density plot of TCP overhead'.format(cfg.protocol), fontsize=12)
-    ax.legend()
+    #ax.set_title('Density plot of TCP overhead'.format(cfg.protocol), fontsize=12)
+    ax.legend(ncol=3, loc="upper center")
+    fig.tight_layout()
+    fig.subplots_adjust(top=0.90)
     plt.show()
 
 def draw_max_retransmission_per_img(cfg, retran):
@@ -53,7 +57,11 @@ def draw_max_retransmission_per_img(cfg, retran):
     plt.xticks(x, cfg.scenario, fontsize=12)
     #plt.title('Maximal {} packet loss rate per image'.format(protocol))
 
-    plt.legend(['chunk size 1024 bytes', 'chunk size 4096 bytes'])
+    plt.legend([
+        #'chunk size 1024 bytes', 
+        'chunk size 4096 bytes'], loc="upper center")
+    fig.tight_layout()
+    fig.subplots_adjust(top=0.90)
     plt.show()
 
 def draw_average_retransmission_per_img(cfg, retran):
@@ -179,5 +187,7 @@ def draw_histogram_delay_per_img(cfg, delay_list):
     ax.set_ylabel('Density', fontsize=12)
     ax.set_xlabel('Image transmission latency (ms)', fontsize=12)
     ax.set_title('Density plot of {} transmission latency'.format(cfg.protocol), fontsize=12)
-    ax.legend()
+    ax.legend(ncol=3, loc="upper center")
+    fig.tight_layout()
+    fig.subplots_adjust(top=0.90)
     plt.show()

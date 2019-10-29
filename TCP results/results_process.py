@@ -8,6 +8,15 @@ from scipy import stats
 #from dnn import classification
 from plot_utility import *
 
+sns.set('notebook')
+params = {'legend.fontsize': 'large',
+          'figure.figsize': (16, 9),
+         'axes.labelsize': 'large',
+         'axes.titlesize':'x-large',
+         'xtick.labelsize':'medium',
+         'ytick.labelsize':'medium'}
+plt.rcParams.update(params)
+
 """
 This is the script to analyze the results of the UDP and TCP test between NUC and JETSON TX2
 
