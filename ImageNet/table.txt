@@ -1,0 +1,106 @@
+\begin{tabular}{ll}
+\toprule
+Class label &                                                                                                               Class Synset \\
+\midrule
+  n01443537 &                                                                                                goldfish, Carassius auratus \\
+  n01518878 &                                                                                                  ostrich, Struthio camelus \\
+  n01532829 &                                                                                  house finch, linnet, Carpodacus mexicanus \\
+  n01580077 &                                                                                                                        jay \\
+  n01688243 &                                                                                       frilled lizard, Chlamydosaurus kingi \\
+  n01753488 &                                                          horned viper, cerastes, sand viper, horned asp, Cerastes cornutus \\
+  n01784675 &                                                                                                                  centipede \\
+  n01795545 &                                                                                                               black grouse \\
+  n01796340 &                                                                                                                  ptarmigan \\
+  n01843383 &                                                                                                                     toucan \\
+  n01855032 &                                                                                    red-breasted merganser, Mergus serrator \\
+  n01860187 &                                                                                                 black swan, Cygnus atratus \\
+  n01877812 &                                                                                                    wallaby, brush kangaroo \\
+  n02007558 &                                                                                                                   flamingo \\
+  n02028035 &                                                                                                   redshank, Tringa totanus \\
+  n02051845 &                                                                                                                    pelican \\
+  n02056570 &                                                                                       king penguin, Aptenodytes patagonica \\
+  n02074367 &                                                                                                       dugong, Dugong dugon \\
+  n02085782 &                                                                                                           Japanese spaniel \\
+  n02088094 &                                                                                                       Afghan hound, Afghan \\
+  n02088632 &                                                                                                                   bluetick \\
+  n02091635 &                                                                                                    otterhound, otter hound \\
+  n02093647 &                                                                                                         Bedlington terrier \\
+  n02099429 &                                                                                                     curly-coated retriever \\
+  n02102318 &                                                                             cocker spaniel, English cocker spaniel, cocker \\
+  n02105412 &                                                                                                                     kelpie \\
+  n02105641 &                                                                                              Old English sheepdog, bobtail \\
+  n02106382 &                                                                                Bouvier des Flandres, Bouviers des Flandres \\
+  n02108551 &                                                                                                            Tibetan mastiff \\
+  n02110063 &                                                                                       malamute, malemute, Alaskan malamute \\
+  n02112706 &                                                                                                          Brabancon griffon \\
+  n02113023 &                                                                                             Pembroke, Pembroke Welsh corgi \\
+  n02123045 &                                                                                                           tabby, tabby cat \\
+  n02124075 &                                                                                                               Egyptian cat \\
+  n02177972 &                                                                                                                     weevil \\
+  n02403003 &                                                                                                                         ox \\
+  n02415577 &                            bighorn, bighorn sheep, cimarron, Rocky Mountain bighorn, Rocky Mountain sheep, Ovis canadensis \\
+  n02445715 &                                                                                                 skunk, polecat, wood pussy \\
+  n02484975 &                                                                                                      guenon, guenon monkey \\
+  n02497673 &                                                                             Madagascar cat, ring-tailed lemur, Lemur catta \\
+  n02788148 &                                                                       bannister, banister, balustrade, balusters, handrail \\
+  n02814860 &                                                                                   beacon, lighthouse, beacon light, pharos \\
+  n02823750 &                                                                                                                 beer glass \\
+  n02877765 &                                                                                                                  bottlecap \\
+  n02906734 &                                                                                                                      broom \\
+  n02916936 &                                                                                                           bulletproof vest \\
+  n02917067 &                                                                                                       bullet train, bullet \\
+  n02939185 &                                                                                                          caldron, cauldron \\
+  n02950826 &                                                                                                                     cannon \\
+  n02966193 &                                                                 carousel, carrousel, merry-go-round, roundabout, whirligig \\
+  n02977058 &  cash machine, cash dispenser, automated teller machine, automatic teller machine, automated teller, automatic teller, ATM \\
+  n02992211 &                                                                                                         cello, violoncello \\
+  n03063689 &                                                                                                                  coffeepot \\
+  n03110669 &                                                                                               cornet, horn, trumpet, trump \\
+  n03126707 &                                                                                                                      crane \\
+  n03131574 &                                                                                                                  crib, cot \\
+  n03179701 &                                                                                                                       desk \\
+  n03259280 &                                                                                                                 Dutch oven \\
+  n03424325 &                                                                                            gasmask, respirator, gas helmet \\
+  n03447447 &                                                                                                                    gondola \\
+  n03476684 &                                                                                                                 hair slide \\
+  n03598930 &                                                                                                              jigsaw puzzle \\
+  n03657121 &                                                                                                       lens cap, lens cover \\
+  n03673027 &                                                                                                         liner, ocean liner \\
+  n03692522 &                                                                                                      loupe, jewelers loupe \\
+  n03710193 &                                                                                                        mailbox, letter box \\
+  n03794056 &                                                                                                                  mousetrap \\
+  n03837869 &                                                                                                                    obelisk \\
+  n03874599 &                                                                                                                    padlock \\
+  n03902125 &                                                                                                     pay-phone, pay-station \\
+  n03903868 &                                                                                                pedestal, plinth, footstall \\
+  n03930313 &                                                                                                       picket fence, paling \\
+  n03958227 &                                                                                                                plastic bag \\
+  n03976467 &                                                                                      Polaroid camera, Polaroid Land camera \\
+  n04009552 &                                                                                                                  projector \\
+  n04067472 &                                                                                                                       reel \\
+  n04086273 &                                                                                             revolver, six-gun, six-shooter \\
+  n04136333 &                                                                                                                     sarong \\
+  n04141076 &                                                                                                             sax, saxophone \\
+  n04147183 &                                                                                                                   schooner \\
+  n04153751 &                                                                                                                      screw \\
+  n04179913 &                                                                                                             sewing machine \\
+  n04204238 &                                                                                                            shopping basket \\
+  n04238763 &                                                                                                      slide rule, slipstick \\
+  n04239074 &                                                                                                               sliding door \\
+  n04254120 &                                                                                                             soap dispenser \\
+  n04258138 &                                                                                 solar dish, solar collector, solar furnace \\
+  n04398044 &                                                                                                                     teapot \\
+  n04486054 &                                                                                                             triumphal arch \\
+  n04501370 &                                                                                                                  turnstile \\
+  n04507155 &                                                                                                                   umbrella \\
+  n04548280 &                                                                                                                 wall clock \\
+  n06359193 &                                                                                     web site, website, internet site, site \\
+  n07716906 &                                                                                                           spaghetti squash \\
+  n07720875 &                                                                                                                bell pepper \\
+  n07754684 &                                                                                                       jackfruit, jak, jack \\
+  n07871810 &                                                                                                        meat loaf, meatloaf \\
+  n09246464 &                                                                                                      cliff, drop, drop-off \\
+  n09256479 &                                                                                                                 coral reef \\
+  n13133613 &                                                                                                      ear, spike, capitulum \\
+\bottomrule
+\end{tabular}
