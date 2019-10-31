@@ -36,6 +36,8 @@ class inference_test():
             return self.early_exiting_resnet(model, threshold, data, target)
         elif model_type == "early_exit_densenet":
             return self.early_exiting_densenet(model, threshold, data, target)
+        elif model_type == 'msdnet':
+            return self.early_exiting_msdnet(model, threshold, data, target)
         else:
             return self.normal_inference(model, threshold, data, target)
 
@@ -79,6 +81,23 @@ class inference_test():
             score_margin = self.score_margin(probability)
             prediction = prediction.data.max(1, keepdim=True)[1]
             return 3, prediction.view(-1).item(), score_margin, perf_counter() - time_start
+
+
+    def early_exiting_msdnet(self, model, threshold, data, target):
+        time_start = perf_counter()
+        model.eval()
+        with torch.no_grad():
+            for i in range(model.nBlocks):
+                data = model.blocks[i](data)
+                prediction = model.classifier[i](data)
+                score = F.softmax(prediction, dim=1)
+                probability, label = topk(score, k=2)
+                score_margin = self.score_margin(probability)
+                if score_margin > threshold:
+                    prediction = prediction.data.max(1, keepdim=True)[1]
+                    return i, prediction.view(-1).item(), score_margin, perf_counter() - time_start
+
+
 
     def early_exiting_densenet(self, model, threshold, data, target):   
         time_start = perf_counter()
