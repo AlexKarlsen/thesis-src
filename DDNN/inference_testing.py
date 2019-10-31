@@ -87,7 +87,7 @@ class inference_test():
         time_start = perf_counter()
         model.eval()
         with torch.no_grad():
-            for i in range(model.nBlocks):
+            for i in range(model.nBlocks-1):
                 data = model.blocks[i](data)
                 prediction = model.classifier[i](data)
                 score = F.softmax(prediction, dim=1)
@@ -97,6 +97,14 @@ class inference_test():
                     prediction = prediction.data.max(1, keepdim=True)[1]
                     return i, prediction.view(-1).item(), score_margin, perf_counter() - time_start
 
+            # if end exit must be used
+            data = model.blocks[model.nBlocks-1](data)
+            prediction = model.classifier[model.nBlocks-1](data)
+            score = F.softmax(prediction, dim=1)
+            probability, label = topk(score, k=2)
+            score_margin = self.score_margin(probability)
+            prediction = prediction.data.max(1, keepdim=True)[1]
+            return i, prediction.view(-1).item(), score_margin, perf_counter() - time_start
 
 
     def early_exiting_densenet(self, model, threshold, data, target):   
@@ -178,9 +186,9 @@ if __name__ == '__main__':
                         help='input batch size for training (default: 1000)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--model_path', default='models/dense_conv/miniimagenet_100_20191028-161439_model.pth',
+    parser.add_argument('--model_path', default='models/msdnet/miniimagenet_100_20191029-131509_model.pth',
                         help='output directory')
-    parser.add_argument('--model-type', default='None', help='run name')
+    parser.add_argument('--model-type', default='msdnet', help='run name')
     args = parser.parse_args()
 
     # use cuda if available else use cpu
@@ -199,8 +207,8 @@ if __name__ == '__main__':
 
     tester = inference_test()
 
-    #thresholds = np.linspace(0.1, 0.9, 9)
-    thresholds =[0.5]
+    thresholds = np.linspace(0.1, 0.9, 9)
+    #thresholds =[0.5]
     
     tester.run(args.name + '_inference_test', thresholds, args.model_type, model, test_loader)
     
