@@ -104,7 +104,7 @@ class inference_test():
             probability, label = topk(score, k=2)
             score_margin = self.score_margin(probability)
             prediction = prediction.data.max(1, keepdim=True)[1]
-            return i, prediction.view(-1).item(), score_margin, perf_counter() - time_start
+            return model.nBlocks-1, prediction.view(-1).item(), score_margin, perf_counter() - time_start
 
 
     def early_exiting_densenet(self, model, threshold, data, target):   
