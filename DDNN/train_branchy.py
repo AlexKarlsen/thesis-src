@@ -17,7 +17,7 @@ import pandas as pd
 from logger import Logger
 
 from datasets import datasets
-from branchymodels.BResNet import BResNet as  net
+from branchymodels.FBDenseNet import FBDenseNet as  net
 
 def train(model, branch_weights, train_loader, optimizer):
 
@@ -164,7 +164,7 @@ def train_model(model, name, model_path, train_loader, test_loader, lr, epochs, 
 if __name__ == '__main__':
     # Training settings
     parser = argparse.ArgumentParser(description='BranchyNet training script')
-    parser.add_argument('--name', default='branchy', help='run name')
+    parser.add_argument('--name', default='FBResNet', help='run name')
     parser.add_argument('--dataset-root', default='datasets/', help='dataset root folder')
     parser.add_argument('--dataset', default='imagenet', help='dataset name')
     parser.add_argument('--batch-size', type=int, default=16, metavar='N',
