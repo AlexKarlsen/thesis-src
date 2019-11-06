@@ -207,7 +207,7 @@ if __name__ == '__main__':
 
     tester = inference_test()
 
-    thresholds = np.linspace(0.1, 0.9, 9)
+    thresholds = np.linspace(0.9, 1, 10)
     #thresholds =[0.5]
     
     tester.run(args.name + '_inference_test', thresholds, args.model_type, model, test_loader)
