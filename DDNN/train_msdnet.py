@@ -14,8 +14,8 @@ import copy
 import numpy as np
 import pandas as pd
 
-from datasets import datasets
-from branchymodels.MSDNet import MSDNet as  net
+from datasets import datasetsping 
+from branchymodels.FMSDNet import FMSDNet as  net
 
 class Logger():
     def __init__(self, name, n_exits, log_path='logging'):

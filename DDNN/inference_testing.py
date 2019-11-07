@@ -177,18 +177,18 @@ class inference_test():
 if __name__ == '__main__':
     # Training settings
     parser = argparse.ArgumentParser(description='DDNN Evaluation')
-    parser.add_argument('--name', default='branchy', help='run name')
+    parser.add_argument('--name', default='densenet-after-del', help='run name')
     parser.add_argument('--dataset-root', default='datasets/', help='dataset root folder')
     parser.add_argument('--batch-size', type=int, default=1, metavar='N',
                         help='input batch size for training (default: 1)')
     parser.add_argument('--dataset', default='miniimagenet', help='dataset name')
-    parser.add_argument('--n-classes', type=int, default=1000, metavar='N',
-                        help='input batch size for training (default: 1000)')
+    parser.add_argument('--n-classes', type=int, default=100, metavar='N',
+                        help='input batch size for training (default: 100)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--model_path', default='models/msdnet/miniimagenet_100_20191029-131509_model.pth',
+    parser.add_argument('--model_path', default='models/densenet/miniimagenet_100_20191018-165914_model.pth',
                         help='output directory')
-    parser.add_argument('--model-type', default='msdnet', help='run name')
+    parser.add_argument('--model-type', default='early_exit_densenet', help='run name')
     args = parser.parse_args()
 
     # use cuda if available else use cpu
