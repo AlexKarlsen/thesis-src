@@ -168,7 +168,8 @@ class inference_test():
     def run(self, name,  thresholds, model_type, model, test_loader):
         for threshold in thresholds:
             for (data, target) in tqdm(test_loader, leave=False, unit='batch'):
-                data, target = data.cuda(), target.cuda()
+                if torch.cuda.is_available():
+                    data, target = data.cuda(), target.cuda()
                 n_exit, prediction, score, time =  self.run_test(model_type, model, threshold, data, target)
                 correct = (prediction == target).view(-1).item()
                 self.log(threshold, n_exit, prediction, target.view(-1).item(), correct, score, time)
@@ -186,7 +187,7 @@ if __name__ == '__main__':
                         help='input batch size for training (default: 100)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--model_path', default='models/densenet/miniimagenet_100_20191018-165914_model.pth',
+    parser.add_argument('--model_path', default='models/b-densenet/miniimagenet_100_20191018-165914_model.pth',
                         help='output directory')
     parser.add_argument('--model-type', default='early_exit_densenet', help='run name')
     args = parser.parse_args()
@@ -202,7 +203,11 @@ if __name__ == '__main__':
     _, test_loader = datasets.get_dataset(args.dataset_root, args.dataset, args.batch_size, args.n_classes, device)
     x, _ = test_loader.__iter__().next()
 
-    model = torch.load(args.model_path)
+    if device.type == 'cuda':
+        torch.cuda.manual_seed(args.seed)
+        model = torch.load(args.model_path)
+    else:
+        model = torch.load(args.model_path, map_location=torch.device('cpu'))
 
 
     tester = inference_test()
