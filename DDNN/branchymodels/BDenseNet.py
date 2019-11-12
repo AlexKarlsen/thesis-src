@@ -105,7 +105,7 @@ if __name__ == "__main__":
     loader = transforms.Compose([transforms.Scale((224,224)), transforms.ToTensor()])
     
     img = loader(img)
-    img = Variable(img, requires_grad=True)
+    img = Variable(img, requires_grad=False)
     img = img.unsqueeze(0)
     model = BDenseNet(out_channels=1000)
     model.eval()
