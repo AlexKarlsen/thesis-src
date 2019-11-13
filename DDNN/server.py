@@ -73,7 +73,8 @@ def main(args):
             image = normalize(image)
             #img = Variable(img, requires_grad=False)
             image = image.unsqueeze(0)
-            image = image.cuda()
+            if torch.cuda.is_available():
+                image = image.cuda()
             myPredictor = predictor(model, image, args.model_type)
             for ex in range(len(myPredictor.exits)):
                 pred = next(myPredictor)
