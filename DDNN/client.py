@@ -35,7 +35,9 @@ class client():
 
     def receive(self):
         # receive image size info
-        data = self.sock.recv(1024)
+        size = self.sock.recv(4)
+        size = int.from_bytes(size, byteorder='big')
+        data = self.sock.recv(size)
         return json.loads(data.decode('utf-8'))
 
 
@@ -92,7 +94,7 @@ if __name__ == "__main__":
     parser.add_argument('--edge-setting', default='edge-only')
     parser.add_argument('--local-exits', default=0)
 
-    parser.add_argument('--host', default='127.0.0.1')
+    parser.add_argument('--host', default='10.0.191.91')
     parser.add_argument('--port', default=23456)
     parser.add_argument('--model-type', default='resnet')
     args = parser.parse_args()
