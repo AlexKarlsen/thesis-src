@@ -32,7 +32,6 @@ class client():
         byte_im = buf.getvalue()
         self.sock.sendall(len(byte_im).to_bytes(4, byteorder='big'))
         self.sock.sendall(byte_im)
-        print('image sent')
 
     def receive(self):
         # receive image size info
@@ -60,27 +59,30 @@ def main(args):
 
         time_start = perf_counter()
         c.send(data)
+        
+        nExits = 4
+        if args.model_type == 'msdnet':
+            nExits = 5
 
-        for _ in range(4):
+        for _ in range(nExits):
             pred = c.receive()
             pred['target'] = target.view(-1).item()
             pred['time'] = (perf_counter() - time_start) * 1000
             pred['correct'] = (pred['prediction']==pred['target'])
             pred['sample'] = sample
             results.append(pred)
-        break
     log = pd.DataFrame(results)
-    log.to_csv('edge_run_1.csv')
+    log.to_csv(args.name + '.csv')
 
 
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Edge Intelligence Client')
-    parser.add_argument('--name', default='densenet-after-del', help='run name')
+    parser.add_argument('--name', default='edge intelligence', help='run name')
     parser.add_argument('--dataset-root', default='datasets/', help='dataset root folder')
     parser.add_argument('--batch-size', type=int, default=1, metavar='N',
                         help='input batch size for training (default: 1)')
-    parser.add_argument('--dataset', default='miniimagenet-test-only', help='dataset name')
+    parser.add_argument('--dataset', default='miniimagenet-test-only-no-normalize', help='dataset name')
     parser.add_argument('--n-classes', type=int, default=100, metavar='N',
                         help='input batch size for training (default: 100)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
@@ -92,5 +94,6 @@ if __name__ == "__main__":
 
     parser.add_argument('--host', default='127.0.0.1')
     parser.add_argument('--port', default=23456)
+    parser.add_argument('--model-type', default='resnet')
     args = parser.parse_args()
     main(args)
