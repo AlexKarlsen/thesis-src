@@ -165,10 +165,11 @@ class inference_test():
         score_margin = (score[0][0] - score[0][1]).item()
         return score_margin
        
-    def run(self, name,  thresholds, model_type, model, test_loader):
+    def run(self, name,  thresholds, model_type, model, test_loader, force_cpu=False):
         for threshold in thresholds:
             for (data, target) in tqdm(test_loader, leave=False, unit='batch'):
-                if torch.cuda.is_available():
+                if torch.cuda.is_available() and force_cpu is not True:
+                    print('data on cuda')
                     data, target = data.cuda(), target.cuda()
                 n_exit, prediction, score, time =  self.run_test(model_type, model, threshold, data, target)
                 correct = (prediction == target).view(-1).item()
@@ -187,13 +188,17 @@ if __name__ == '__main__':
                         help='input batch size for training (default: 100)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--model_path', default='models/b-densenet/miniimagenet_100_20191018-165914_model.pth',
+    parser.add_argument('--model_path', default='models/msdnet/miniimagenet_100_20191029-131509_model.pth',
                         help='output directory')
-    parser.add_argument('--model-type', default='early_exit_densenet', help='run name')
+    parser.add_argument('--model-type', default='msdnet', help='run name')
+    parser.add_argument('--force-cpu', default=True)
     args = parser.parse_args()
 
     # use cuda if available else use cpu
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    if args.force_cpu is not True:
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    else:
+        device = torch.device('cpu')
 
     # seed???
     torch.manual_seed(args.seed)
@@ -203,17 +208,18 @@ if __name__ == '__main__':
     _, test_loader = datasets.get_dataset(args.dataset_root, args.dataset, args.batch_size, args.n_classes, device)
     x, _ = test_loader.__iter__().next()
 
-    if device.type == 'cuda':
+    if device.type == 'cuda' and args.force_cpu is not True:
         torch.cuda.manual_seed(args.seed)
         model = torch.load(args.model_path)
     else:
         model = torch.load(args.model_path, map_location=torch.device('cpu'))
 
+    print(device.type)
 
     tester = inference_test()
 
-    thresholds = np.linspace(0.9, 1, 10)
+    thresholds = np.arange(0.1,1,0.1)
     #thresholds =[0.5]
     
-    tester.run(args.name + '_inference_test', thresholds, args.model_type, model, test_loader)
+    tester.run(args.name + '_inference_test', thresholds, args.model_type, model, test_loader, args.force_cpu)
     
