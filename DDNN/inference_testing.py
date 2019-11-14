@@ -179,11 +179,11 @@ class inference_test():
 if __name__ == '__main__':
     # Training settings
     parser = argparse.ArgumentParser(description='DDNN Evaluation')
-    parser.add_argument('--name', default='densenet-after-del', help='run name')
+    parser.add_argument('--name', default='msdnet-laptop', help='run name')
     parser.add_argument('--dataset-root', default='datasets/', help='dataset root folder')
     parser.add_argument('--batch-size', type=int, default=1, metavar='N',
                         help='input batch size for training (default: 1)')
-    parser.add_argument('--dataset', default='miniimagenet', help='dataset name')
+    parser.add_argument('--dataset', default='miniimagenet-test-only', help='dataset name')
     parser.add_argument('--n-classes', type=int, default=100, metavar='N',
                         help='input batch size for training (default: 100)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
@@ -206,7 +206,7 @@ if __name__ == '__main__':
         torch.cuda.manual_seed(args.seed)
 
     _, test_loader = datasets.get_dataset(args.dataset_root, args.dataset, args.batch_size, args.n_classes, device)
-    x, _ = test_loader.__iter__().next()
+    #x, _ = test_loader.__iter__().next()
 
     if device.type == 'cuda' and args.force_cpu is not True:
         torch.cuda.manual_seed(args.seed)
