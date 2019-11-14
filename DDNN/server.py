@@ -26,8 +26,10 @@ class server:
                
     
     def send(self, connection, msg):
-
-        connection.sendall(json.dumps(msg).encode('utf-8'))
+        msg = json.dumps(msg).encode('utf-8')
+        msg_len = len(msg)
+        connection.sendall(msg_len.to_bytes(4, byteorder='big'))
+        connection.sendall(msg)
 
     def receive(self, conn, buffer_size):
         # receive image size info
@@ -85,6 +87,7 @@ def main(args):
                     'prediction': pred,
                     'confidence': score
                 }
+
                 s.send(connection, msg)
 
     
@@ -93,7 +96,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_path', default='models/b-resnet/miniimagenet_100_20191023-162944_model.pth',
                         help='output directory')
 
-    parser.add_argument('--host', default='127.0.0.1')
+    parser.add_argument('--host', default='0.0.0.0')
     parser.add_argument('--port', default=23456)
     parser.add_argument('--buffer-size', default=4096)
     parser.add_argument('--model-type', default='b-resnet')
