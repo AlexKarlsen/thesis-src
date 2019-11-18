@@ -38,7 +38,6 @@ class server:
 
     def receive(self, conn, buffer_size):
         # receive image size info
-        time_start = perf_counter()
         size = conn.recv(4)
 
         if not size:
@@ -50,9 +49,7 @@ class server:
             part = conn.recv(buffer_size) # receive chunk
             data += part # append chunk
             size -= len(part) # substract from size to track progres
-        time_end = perf_counter()
-        print('Time receiving: {}ms'.format((time_end-time_start)*1000))
-        return data, (time_end-time_start)*1000
+        return data
 
 def main(args):
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -78,14 +75,15 @@ def main(args):
 
         # while data is being received
         while True:
-            data, rx_time = s.receive(connection, args.buffer_size)
-
             time_start = perf_counter()
+            data = s.receive(connection, args.buffer_size)
+            rx_time = (perf_counter() - time_start)*1000
+            
             # stop when flag is sent
             if data == False:
                 print('Done receiving')
                 return
-            
+            time_start = perf_counter()
             # set the edge mode
             if args.edge_setting == 'collaborative':
                 #data = np.frombuffer(data, dtype='float32')
@@ -112,9 +110,9 @@ def main(args):
     
             myPredictor.data = data
 
-            preprocess_time = perf_counter()
+            preprocess_time =( perf_counter() - time_start)*1000
 
-            print('preprocess time {}'.format(preprocess_time))
+            #print('preprocess time {}'.format(preprocess_time))
 
             # run the test
             for ex in exits:
@@ -122,21 +120,22 @@ def main(args):
                 myPredictor.counter = ex
                 time_start = perf_counter()
                 pred = next(myPredictor)
+                pred = pred.cpu()
                 score = F.softmax(pred, dim=1)
                 prob, pred = torch.topk(score, k=5)
                 prob, pred = prob.numpy()[0].tolist(), pred.numpy()[0].tolist()
-                time_end = perf_counter() 
+                prediction_time = (perf_counter() - time_start)*1000 
                 # create msg
                 msg = {
                     'exit': int(ex),
                     'prediction': pred,
                     'confidence': prob,
-                    'prediction time': time_end -time_start,
+                    'prediction time': prediction_time,
                     'preprocess time': preprocess_time,
                     'rx-time': rx_time
                 }
 
-                print('prediction time: {}'.format(time_end-time_start))
+                #print('prediction time: {}'.format(time_end-time_start))
 
                 # send intermediate results ###### maybe threading would help
                 threading._start_new_thread(s.send,(connection, msg,))

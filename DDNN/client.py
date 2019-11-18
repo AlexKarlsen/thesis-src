@@ -123,8 +123,11 @@ def main(args):
             result['prediction'] = pred['prediction']
             result['scores'] = pred['confidence']
             result['target'] = target.view(-1).item()
-            result['time'] = (perf_counter() - time_start) * 1000
-            result['time_tx'] = (time_sent-time_start) * 1000
+            result['overall time'] = (perf_counter() - time_start) * 1000
+            result['prediction time'] = pred['prediction time']
+            result['tx time'] = (time_sent-time_start)*1000
+            result['rx time'] = pred['rx-time']
+            result['preprocess time'] = pred['preprocess time']
             result['correct'] = (pred['prediction'][0]==result['target'])
             try:
                 result['index_top5'] = pred['prediction'].index(result['target'])
