@@ -14,6 +14,11 @@ class predictor:
         elif model_type == 'msdnet':
             self.exits = model.blocks
             self.model = model
+        else:
+            self.nExits = 1
+            self.model = model
+            self.exits = [model]
+
         self.counter = 0
         self.data = data
         self.model_type = model_type
@@ -45,5 +50,5 @@ class predictor:
             self.counter += 1
             return p
         else:
-            p = self.model(self.data)
+            p, _ = self.model(self.data)
             return p

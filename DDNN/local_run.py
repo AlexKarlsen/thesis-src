@@ -59,8 +59,8 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', default='miniimagenet-test-only', help='dataset name')
     parser.add_argument('--n-classes', type=int, default=100, metavar='N',
                         help='input batch size for training (default: 100)')
-    parser.add_argument('--model_path', default='models/b-resnet/miniimagenet_100_20191023-162944_model.pth',
+    parser.add_argument('--model_path', default='models/resnet101/miniimagenet_100_20191025-161132_model.pth',
                         help='output directory')
-    parser.add_argument('--model-type', default='b-resnet')
+    parser.add_argument('--model-type', default='resnet')
     args = parser.parse_args()
     main(args)
