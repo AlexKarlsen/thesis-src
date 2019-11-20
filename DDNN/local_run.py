@@ -30,7 +30,8 @@ def main(args):
             if device.type == 'cuda':
                 data, target = data.cuda(), target.cuda()
             time_start = perf_counter()
-            
+            if sample == 2804:
+                print()
             myPredictor = predictor(model, data, args.model_type)
             for ex in range(len(myPredictor.exits)):
                 pred = next(myPredictor)
@@ -59,7 +60,7 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', default='miniimagenet-test-only', help='dataset name')
     parser.add_argument('--n-classes', type=int, default=100, metavar='N',
                         help='input batch size for training (default: 100)')
-    parser.add_argument('--model_path', default='models/resnet101/miniimagenet_100_20191025-161132_model.pth',
+    parser.add_argument('--model_path', default='models/msd/miniimagenet_100_20191029-131509_model.pth',
                         help='output directory')
     parser.add_argument('--model-type', default='resnet')
     args = parser.parse_args()
