@@ -140,8 +140,8 @@ def main(args):
             results.append(result.copy())
 
         
-        with open('edge_test/' +args.name +'.json', 'w') as f:
-            json.dump(results, f)
+    with open('edge_test/' +args.name +'.json', 'w') as f:
+        json.dump(results, f)
     #log.to_csv(args.name + '.csv')
 
 
