@@ -40,37 +40,6 @@ class threshold_tester():
              time])), ignore_index = True)
             
         return dataframe
-        
-    # def confidence_threshold(self, name, threshold_range, model, test_loader, device):
-    #         for test, threshold in enumerate(threshold_range):
-    #             for n_exit, (pred, time) in enumerate(zip(predictions, timings)):
-
-    #                 if torch.max(probability).item() > threshold: # if model confidence it higher than threshold value
-    #                     exited = 1
-    #                 else:
-    #                     exited = 0
-    #                 self.log(name, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, score.view(-1)[0].item(), time)
-    #         self.save(name)
-            
-    # def score_margin_threshold(self, name, threshold_range, model, test_loader, device):
-    #         for test, threshold in enumerate(threshold_range):
-            
-
-    #             for n_exit, (pred, time) in enumerate(zip(predictions, timings)):
-
-    #                 score = F.softmax(pred, dim=1)
-    #                 # I should try to do like in train script if I keep getting too good results...
-    #                 probability, label = topk(score, k=5)
-    #                 correct = (label.view(-1)[0].item() == target.view(-1).item())
-                    
-    #                 score_margin = (probability[0][0] - probability[0][1]).item()
-
-    #                 if score_margin > threshold: # if model confidence it higher than threshold value
-    #                     exited = 1
-    #                 else:
-    #                     exited = 0
-    #                 self.log(name, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, score.view(-1)[0].item(), time)
-    #         self.save(name)
 
 if __name__ == '__main__':
     # Training settings
@@ -130,7 +99,7 @@ if __name__ == '__main__':
                         exited = 1
                     else:
                         exited = 0
-                    confidence_log = tester.log(confidence_log, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, score.view(-1)[0].item(), time)
+                    confidence_log = tester.log(confidence_log, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, probability(-1)[0].item(), time)
 
                     #tester.reset_log()
 
@@ -140,7 +109,7 @@ if __name__ == '__main__':
                         exited = 1
                     else:
                         exited = 0
-                    score_margin_log = tester.log(score_margin_log, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, score.view(-1)[0].item(), time)
+                    score_margin_log = tester.log(score_margin_log, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, score_margin, time)
         
     tester.save(args.name + '_confidence1', confidence_log)
     tester.save(args.name + '_score_margin1', score_margin_log)
