@@ -14,8 +14,8 @@ import copy
 import numpy as np
 import pandas as pd
 
-from datasets import datasetsping 
-from branchymodels.FMSDNet import FMSDNet as  net
+from datasets import datasets 
+from branchymodels.MSDNet import MSDNet as  net
 
 class Logger():
     def __init__(self, name, n_exits, log_path='logging'):
@@ -183,10 +183,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='BranchyNet training script')
     parser.add_argument('--name', default='branchy', help='run name')
     parser.add_argument('--dataset-root', default='datasets/', help='dataset root folder')
-    parser.add_argument('--dataset', default='imagenet', help='dataset name')
+    parser.add_argument('--dataset', default='miniimagenet', help='dataset name')
     parser.add_argument('--batch-size', type=int, default=16, metavar='N',
                         help='input batch size for training (default: 16)')
-    parser.add_argument('--n-classes', type=int, default=1000, metavar='N',
+    parser.add_argument('--n-classes', type=int, default=100, metavar='N',
                         help='input batch size for training (default: 1000)')
     parser.add_argument('--epochs', type=int, default=50, metavar='N',
                         help='number of epochs to train (default: 50)')
@@ -207,12 +207,13 @@ if __name__ == '__main__':
     parser.add_argument('--nScales', default=4, help="lenght of grFactor")
     parser.add_argument('--grFactor',  nargs=4, default=[1, 2, 4, 4])
     parser.add_argument('--bnFactor',  nargs=4, default=[1, 2, 4, 4])
-    parser.add_argument('--data', default='ImageNet')
+    parser.add_argument('--data', default='miniimagenet100')
     parser.add_argument('--prune', default='max', choices=['min', 'max'])
     parser.add_argument('--bottleneck', default=True, type=bool)
     parser.add_argument('--reduction', default=0.5, type=float,
                         metavar='C', help='compression ratio of DenseNet'
                         ' (1 means dot\'t use compression) (default: 0.5)')
+    #parser.add_argument('--nOut', default=100)
     args = parser.parse_args()
 
     timestr = strftime("%Y%m%d-%H%M%S")
@@ -240,10 +241,12 @@ if __name__ == '__main__':
     from collections import OrderedDict
     new_state_dict = OrderedDict()
     for k, v in state_dict.items():
-        name = k[7:] # remove `module.`
-        new_state_dict[name] = v
+        if not k.startswith('module.classifier'): # do not add classifier weights, as these shoul dbe retrained
+        
+            name = k[14:] # remove `module.`
+            new_state_dict[name] = v
     # load params
-    model.load_state_dict(new_state_dict)
+    model.blocks.load_state_dict(new_state_dict)
 
 
     model_path = os.path.join('models', args.name, args.dataset + '_' + str(args.n_classes) + '_' + timestr + '_model.pth')
