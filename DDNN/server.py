@@ -102,7 +102,7 @@ def main(args):
                 data = data.unsqueeze(0)
 
                 # set range of exits
-                exits = range(nExits)
+                exits = range(5) ###################hardcodod
 
             # load data to gpu if available
             if device.type == 'cuda':
@@ -151,6 +151,6 @@ if __name__ == "__main__":
     parser.add_argument('--buffer-size', default=4096)
     parser.add_argument('--model-type', default='b-densenet')
     parser.add_argument('--edge-setting', default='edge-only')
-    parser.add_argument('--local-exits', default=1)
+    parser.add_argument('--local-exits', default=0)
     args = parser.parse_args()
     main(args)
