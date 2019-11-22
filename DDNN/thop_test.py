@@ -12,8 +12,8 @@ def measure_model_all_exits(args, model=None):
         model = ResNet(100)
     elif model == 'densenet':
         model = DenseNet(100)
-    elif model == 'bdensenet':
-        model = bdensenet(100)
+    elif model == 'bresnet':
+        model = BResNet(100)
     elif model == 'bdensenet':
         model = BDenseNet(100)
     elif model == 'msdnet':

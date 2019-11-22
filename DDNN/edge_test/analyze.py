@@ -1,16 +1,8 @@
+import json
 import pandas as pd
 import numpy as np
-import seaborn as sns; sns.set('talk')
-import matplotlib.pyplot as plt
-params = {'legend.fontsize': 'large',
-          'figure.figsize': (16, 9),
-         'axes.labelsize': 'medium',
-         'axes.titlesize':'x-large',
-         'xtick.labelsize':'small',
-         'ytick.labelsize':'small'}
-plt.rcParams.update(params)
-import json
 from pandas.io.json import json_normalize
+import argparse
 
 def MultiHotEncode(_labels, _scores, n_classes=100):
     '''Return topk labels and scores as multihot encoded vector. 
@@ -124,29 +116,10 @@ def ScoreMargin(_labels, _scores, selection='additive', weights = None):
     best = (labellist[idx], scorelist[idx])
     return best
 
-
-if __name__ == "__main__":
-    
-    with open('edge_test/gpu_win_pc_offload.json', 'r') as json_file:
-        data = json.load(json_file)
-
-    df = pd.DataFrame()
-    df = json_normalize(data,)
-
-
+def delay_threshold_test(df, args):
     post_prediction = pd.DataFrame()
     for delay_threshold in np.arange(50, 301, 5):
-        n = 0
-        correct = 0
-        conventional = 0
-        maximum = 0
-        addition = 0
-        addition_w = 0
-        incorrect = 0
-        missed = 0
-        sm_additive = 0
-        sm_additive_w = 0
-        sm_max = 0
+        n = conventional = maximum = addition = addition_w = missed = sm_additive = sm_additive_w = sm_max = 0
         which_exits = np.zeros(4)
         for i, data in df.groupby(['sample']):
             # find predictions within time fram
@@ -202,4 +175,66 @@ if __name__ == "__main__":
             }, ignore_index = True)
 
     print(post_prediction)
-    post_prediction.to_json('analysis.json')
+    post_prediction.to_json(args.name + 'analysis.json')
+
+def lost_prediction_test(df, args):
+    
+    post_prediction = pd.DataFrame()
+    for k in range(1,len(df[:1].prediction.tolist()[0])):
+
+        n = conventional = maximum = addition = addition_w = sm_additive = sm_additive_w = sm_max = 0
+        for _, data in df.groupby(['sample']):
+            n += 1
+            labels, scores = np.array(data.prediction.tolist()[:k]), np.array(data.scores.tolist()[:k])
+
+            score_additive_w = ScoreMargin(labels, scores, 'additive', weights=[1, 1.5, 2, 2])
+            score_additive = ScoreMargin(labels, scores, 'additive', weights=[1,1,1,1])
+            score_max = ScoreMargin(labels, scores, 'max')
+
+            labels, scores = MultiHotEncode(labels,scores)
+            addtest = Confidence(labels, scores, selection='additive')
+            addtest_w = Confidence(labels, scores, selection='additive', weights=[0.6, 1, 2, 2.2])
+            
+            
+            maxtest = Confidence(labels, scores, selection='max')
+            target = data.target.tolist()
+
+            addition_w +=  (addtest_w[0]== target[0])
+            addition += (addtest[0]==target[0])
+            maximum += (maxtest[0] == target[0])
+            conventional += (target[0] == data.prediction.tolist()[k-1][0])
+            sm_additive_w += (target[0] == score_additive_w[0])
+            sm_additive += (target[0] == score_additive[0])
+            sm_max += (target[0]==score_max[0])
+
+        post_prediction = post_prediction.append({
+            'N Exits' : n,
+            'latest': conventional / n,
+            'confidence (max)' : maximum / n,
+            'confidence (add)' : addition / n,
+            'confidence (add,weighted)' : addition_w / n,
+            'score-margin (max)' : sm_max / n,
+            'score_margin (add)' : sm_additive / n,
+            'score-margin (add,weighted)' : sm_additive_w / n
+        }, ignore_index = True)
+
+    post_prediction.to_json(args.name +'_lost_prediction_analysis.json')
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Analyze edge offloading results')
+    parser.add_argument('--name', default='nuc_2_jetson_b-densenet')
+    parser.add_argument('--test', default='lost-prediction')
+    args = parser.parse_args()
+    with open('edge_test/' + args.name + '.json', 'r') as json_file:
+        data = json.load(json_file)
+
+    df = pd.DataFrame()
+    df = json_normalize(data,)
+
+    if args.test == 'delay-threshold':
+        delay_threshold_test(df, args)
+    elif args.test == 'lost-prediction':
+        lost_prediction_test(df, args)
+    else:
+        raise Exception('test must be specified')
+    
