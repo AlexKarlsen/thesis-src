@@ -169,7 +169,7 @@ class inference_test():
         for threshold in thresholds:
             for (data, target) in tqdm(test_loader, leave=False, unit='batch'):
                 if torch.cuda.is_available() and force_cpu is not True:
-                    print('data on cuda')
+                    #print('data on cuda')
                     data, target = data.cuda(), target.cuda()
                 n_exit, prediction, score, time =  self.run_test(model_type, model, threshold, data, target)
                 correct = (prediction == target).view(-1).item()
@@ -191,7 +191,7 @@ if __name__ == '__main__':
     parser.add_argument('--model_path', default='models/msdnet/miniimagenet_100_20191029-131509_model.pth',
                         help='output directory')
     parser.add_argument('--model-type', default='msdnet', help='run name')
-    parser.add_argument('--force-cpu', default=True)
+    parser.add_argument('--force-cpu', default=False)
     args = parser.parse_args()
 
     # use cuda if available else use cpu

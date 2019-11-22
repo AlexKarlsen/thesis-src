@@ -94,7 +94,7 @@ class MSDNFirstLayer(nn.Module):
         if args.data.startswith('cifar'):
             self.layers.append(ConvBasic(nIn, nOut * args.grFactor[0],
                                          kernel=3, stride=1, padding=1))
-        elif args.data == 'ImageNet':
+        elif args.data == 'ImageNet' or args.data == 'miniimagenet100':
             conv = nn.Sequential(
                     nn.Conv2d(nIn, nOut * args.grFactor[0], 7, 2, 3),
                     nn.BatchNorm2d(nOut * args.grFactor[0]),
@@ -227,7 +227,7 @@ class FMSDNet(nn.Module):
             self.blocks.append(m)
             n_layer_curr += self.steps[i]
 
-            if args.data.startswith('cifar100'):
+            if args.data.startswith('miniimagenet100'):
                 self.classifier.append(
                     self._build_classifier_cifar(nIn * args.grFactor[-1], 100))
             elif args.data.startswith('cifar10'):

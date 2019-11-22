@@ -34,9 +34,14 @@ def main(args):
                 print()
             myPredictor = predictor(model, data, args.model_type)
             for ex in range(len(myPredictor.exits)):
+                myPredictor.counter = ex
+                time_start = perf_counter()
                 pred = next(myPredictor)
-                score = F.softmax(pred, dim=1).max(1)[0].item()
-                pred = pred.data.max(1, keepdim=True)[1].item()
+                pred = pred.cpu()
+                score = F.softmax(pred, dim=1)
+                prob, pred = torch.topk(score, k=5)
+                prob, pred = prob.numpy()[0].tolist(), pred.numpy()[0].tolist()
+                prediction_time = (perf_counter() - time_start)*1000 
                 msg = {
                     'exit': ex,
                     'prediction': pred,
@@ -60,8 +65,8 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', default='miniimagenet-test-only', help='dataset name')
     parser.add_argument('--n-classes', type=int, default=100, metavar='N',
                         help='input batch size for training (default: 100)')
-    parser.add_argument('--model_path', default='models/msd/miniimagenet_100_20191029-131509_model.pth',
+    parser.add_argument('--model_path', default='models/msdnet/miniimagenet_100_20191029-131509_model.pth',
                         help='output directory')
-    parser.add_argument('--model-type', default='resnet')
+    parser.add_argument('--model-type', default='msdnet')
     args = parser.parse_args()
     main(args)
