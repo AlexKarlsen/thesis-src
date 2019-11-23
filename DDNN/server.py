@@ -143,14 +143,14 @@ def main(args):
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Edge Intelligence Server')
-    parser.add_argument('--model_path', default='models/b-densenet/miniimagenet_100_20191018-165914_model.pth',
+    parser.add_argument('--model_path', default='models/msdnet/msdnet_miniimagenet100.pth',
                         help='output directory')
 
     parser.add_argument('--host', default='127.0.0.1')
     parser.add_argument('--port', default=23456)
     parser.add_argument('--buffer-size', default=4096)
-    parser.add_argument('--model-type', default='b-densenet')
+    parser.add_argument('--model-type', default='msdnet')
     parser.add_argument('--edge-setting', default='edge-only')
-    parser.add_argument('--local-exits', default=1)
+    parser.add_argument('--local-exits', default=0)
     args = parser.parse_args()
     main(args)

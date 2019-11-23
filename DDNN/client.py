@@ -157,11 +157,11 @@ if __name__ == "__main__":
                         help='input batch size for training (default: 100)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--model_path', default='models/b-densenet/miniimagenet_100_20191018-165914_model.pth',
+    parser.add_argument('--model_path', default='models/msdnet/msdnet_miniimagenet100.pth',
                         help='output directory')
-    parser.add_argument('--model-type', default='b-densenet')
+    parser.add_argument('--model-type', default='msdnet')
     parser.add_argument('--edge-setting', default='edge-only')
-    parser.add_argument('--local-exits', default=1)
+    parser.add_argument('--local-exits', default=0)
 
     parser.add_argument('--host', default='127.0.0.1')
     parser.add_argument('--port', default=23456)
