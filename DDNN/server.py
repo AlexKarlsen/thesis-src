@@ -102,7 +102,7 @@ def main(args):
                 data = data.unsqueeze(0)
 
                 # set range of exits
-                exits = range(nExits)
+                exits = range(5) ###################hardcodod
 
             # load data to gpu if available
             if device.type == 'cuda':
