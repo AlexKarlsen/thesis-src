@@ -46,7 +46,7 @@ def main(args):
                     'confidence': prob,
                     'target' : target.view(-1).item(),
                     'time' : prediction_time,
-                    'correct' : (pred==target.view(-1).item()),
+                    'correct' : (pred[0]==target.view(-1).item()),
                     'sample' : sample
                 }
                 results.append(msg)
