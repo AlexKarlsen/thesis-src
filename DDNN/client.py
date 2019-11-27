@@ -58,7 +58,7 @@ class client():
         size = self.sock.recv(4)
         size = int.from_bytes(size, byteorder='big')
         data = self.sock.recv(size)
-        return json.loads(data.decode('utf-8'))
+        return json.loads(data)
 
 
 def main(args):

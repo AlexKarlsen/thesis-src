@@ -31,7 +31,7 @@ class server:
                
     
     def send(self, connection, msg):
-        msg = json.dumps(msg).encode('utf-8')
+        msg = json.dumps(msg)
         msg_len = len(msg)
         connection.sendall(msg_len.to_bytes(4, byteorder='big'))
         connection.sendall(msg)
