@@ -120,6 +120,7 @@ def delay_threshold_test(df, args):
     post_prediction = pd.DataFrame()
     for delay_threshold in np.arange(50, 301, 5):
         n = conventional = maximum = addition = addition_w = missed = sm_additive = sm_additive_w = sm_max = 0
+
         which_exits = np.zeros(4)
         for i, data in df.groupby(['sample']):
             # find predictions within time fram
@@ -132,13 +133,13 @@ def delay_threshold_test(df, args):
                 # filter predictions within time frame
                 labels, scores = np.array(data.prediction.tolist()[:exits]), np.array(data.scores.tolist()[:exits])
 
-                score_additive_w = ScoreMargin(labels, scores, 'additive', weights=[1, 1.5, 2, 2])
-                score_additive = ScoreMargin(labels, scores, 'additive', weights=[1,1,1,1])
+                score_additive_w = ScoreMargin(labels, scores, 'additive', args.weights)
+                score_additive = ScoreMargin(labels, scores, 'additive')
                 score_max = ScoreMargin(labels, scores, 'max')
 
                 labels, scores = MultiHotEncode(labels,scores)
                 addtest = Confidence(labels, scores, selection='additive')
-                addtest_w = Confidence(labels, scores, selection='additive', weights=[0.6, 1, 2, 2.2])
+                addtest_w = Confidence(labels, scores, selection='additive', weights=args.weights)
                 
                 
                 maxtest = Confidence(labels, scores, selection='max')
@@ -180,20 +181,24 @@ def delay_threshold_test(df, args):
 def lost_prediction_test(df, args):
     
     post_prediction = pd.DataFrame()
-    for k in range(1,len(df[:1].prediction.tolist()[0])):
+    if args.model_type == 'msdnet':
+        exits = 5
+    else:
+        exits = 4
+    for k in range(1,exits+1):
 
         n = conventional = maximum = addition = addition_w = sm_additive = sm_additive_w = sm_max = 0
         for _, data in df.groupby(['sample']):
             n += 1
             labels, scores = np.array(data.prediction.tolist()[:k]), np.array(data.scores.tolist()[:k])
 
-            score_additive_w = ScoreMargin(labels, scores, 'additive', weights=[1, 1.5, 2, 2])
-            score_additive = ScoreMargin(labels, scores, 'additive', weights=[1,1,1,1])
+            score_additive_w = ScoreMargin(labels, scores, 'additive', weights=args.weights)
+            score_additive = ScoreMargin(labels, scores, 'additive')
             score_max = ScoreMargin(labels, scores, 'max')
 
             labels, scores = MultiHotEncode(labels,scores)
             addtest = Confidence(labels, scores, selection='additive')
-            addtest_w = Confidence(labels, scores, selection='additive', weights=[0.6, 1, 2, 2.2])
+            addtest_w = Confidence(labels, scores, selection='additive', weights=args.weights)
             
             
             maxtest = Confidence(labels, scores, selection='max')
@@ -223,7 +228,9 @@ def lost_prediction_test(df, args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Analyze edge offloading results')
     parser.add_argument('--name', default='msdnet-local3')
-    parser.add_argument('--test', default='lost-prediction')
+    parser.add_argument('--test', default='lost-prediction'),
+    parser.add_argument('--model-type', default='msdnet'),
+    parser.add_argument('--weights', default=[1,1.2,1.4,1.6,1.6])
     args = parser.parse_args()
     with open('edge_test/' + args.name + '.json', 'r') as json_file:
         data = json.load(json_file)
