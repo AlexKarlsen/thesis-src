@@ -30,8 +30,6 @@ def main(args):
             if device.type == 'cuda':
                 data, target = data.cuda(), target.cuda()
             time_start = perf_counter()
-            if sample == 2804:
-                print()
             myPredictor = predictor(model, data, args.model_type)
             for ex in range(len(myPredictor.exits)):
                 myPredictor.counter = ex
@@ -45,10 +43,10 @@ def main(args):
                 msg = {
                     'exit': ex,
                     'prediction': pred,
-                    'confidence': score,
+                    'confidence': prob,
                     'target' : target.view(-1).item(),
-                    'time' : (perf_counter() - time_start) * 1000,
-                    'correct' : (pred==target.view(-1).item()),
+                    'time' : prediction_time,
+                    'correct' : (pred[0]==target.view(-1).item()),
                     'sample' : sample
                 }
                 results.append(msg)
