@@ -163,7 +163,7 @@ if __name__ == "__main__":
     parser.add_argument('--edge-setting', default='edge-only')
     parser.add_argument('--local-exits', default=0)
 
-    parser.add_argument('--host', default='127.0.0.1')
+    parser.add_argument('--host', default='10.0.191.18')
     parser.add_argument('--port', default=23456)
 
     parser.add_argument('--log-to-console', default=True)
