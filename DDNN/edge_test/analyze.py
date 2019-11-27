@@ -222,7 +222,7 @@ def lost_prediction_test(df, args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Analyze edge offloading results')
-    parser.add_argument('--name', default='nuc_2_jetson_b-densenet')
+    parser.add_argument('--name', default='msdnet-local3')
     parser.add_argument('--test', default='lost-prediction')
     args = parser.parse_args()
     with open('edge_test/' + args.name + '.json', 'r') as json_file:

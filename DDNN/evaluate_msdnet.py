@@ -129,7 +129,7 @@ if __name__ == '__main__':
                         exited = 1
                     else:
                         exited = 0
-                    confidence_log = tester.log(confidence_log, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, score.view(-1)[0].item())
+                    confidence_log = tester.log(confidence_log, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, probability.view(-1)[0].item())
 
                     #tester.reset_log()
 
@@ -139,7 +139,7 @@ if __name__ == '__main__':
                         exited = 1
                     else:
                         exited = 0
-                    score_margin_log = tester.log(score_margin_log, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, score.view(-1)[0].item())
+                    score_margin_log = tester.log(score_margin_log, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, probability.view(-1)[0].item())
         
     tester.save(args.name + '_confidence1', confidence_log)
     tester.save(args.name + '_score_margin1', score_margin_log)
