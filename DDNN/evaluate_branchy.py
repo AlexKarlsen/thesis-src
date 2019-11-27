@@ -44,7 +44,7 @@ class threshold_tester():
 if __name__ == '__main__':
     # Training settings
     parser = argparse.ArgumentParser(description='DDNN Evaluation')
-    parser.add_argument('--name', default='msdnet_threshold', help='resnet100')
+    parser.add_argument('--name', default='bdensnenet_threshold', help='resnet100')
     parser.add_argument('--dataset-root', default='datasets/', help='dataset root folder')
     parser.add_argument('--batch-size', type=int, default=1, metavar='N',
                         help='input batch size for training (default: 1)')
@@ -53,7 +53,7 @@ if __name__ == '__main__':
                         help='input batch size for training (default: 1000)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--model_path', default='models/msdnet/msdnet_miniimagenet100.pth',
+    parser.add_argument('--model_path', default='models/b-densenet/',
                         help='output directory')
     args = parser.parse_args()
 
@@ -99,7 +99,7 @@ if __name__ == '__main__':
                         exited = 1
                     else:
                         exited = 0
-                    confidence_log = tester.log(confidence_log, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, probability(-1)[0].item(), time)
+                    confidence_log = tester.log(confidence_log, threshold, test, n_exit, sample, exited, label.view(-1)[0].item(),  target.view(-1).item(), correct, probability.view(-1)[0].item(), time)
 
                     #tester.reset_log()
 
