@@ -31,7 +31,7 @@ class server:
                
     
     def send(self, connection, msg):
-        msg = json.dumps(msg)
+        msg = json.dumps(msg).encode('utf-8')
         msg_len = len(msg)
         connection.sendall(msg_len.to_bytes(4, byteorder='big'))
         connection.sendall(msg)
@@ -146,7 +146,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_path', default='models/msdnet/msdnet_miniimagenet100.pth',
                         help='output directory')
 
-    parser.add_argument('--host', default='127.0.0.1')
+    parser.add_argument('--host', default='0.0.0.0')
     parser.add_argument('--port', default=23456)
     parser.add_argument('--buffer-size', default=4096)
     parser.add_argument('--model-type', default='msdnet')

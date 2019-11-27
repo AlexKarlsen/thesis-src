@@ -58,7 +58,7 @@ class client():
         size = self.sock.recv(4)
         size = int.from_bytes(size, byteorder='big')
         data = self.sock.recv(size)
-        return json.loads(data)
+        return json.loads(data.decode('utf-8'))
 
 
 def main(args):
@@ -163,7 +163,7 @@ if __name__ == "__main__":
     parser.add_argument('--edge-setting', default='edge-only')
     parser.add_argument('--local-exits', default=0)
 
-    parser.add_argument('--host', default='10.0.191.18')
+    parser.add_argument('--host', default='10.0.191.44')
     parser.add_argument('--port', default=23456)
 
     parser.add_argument('--log-to-console', default=True)
