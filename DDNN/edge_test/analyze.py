@@ -180,7 +180,7 @@ def delay_threshold_test(df, args):
 
 def lost_prediction_test(df, args):
     
-    post_prediction = pd.DataFrame()
+    post_prediction = []
     if args.model_type == 'msdnet':
         exits = 5
     else:
@@ -212,7 +212,8 @@ def lost_prediction_test(df, args):
             sm_additive += (target[0] == score_additive[0])
             sm_max += (target[0]==score_max[0])
 
-        post_prediction = post_prediction.append({
+        post_prediction.append({
+            'exit' : k-1,
             'N Exits' : n,
             'latest': conventional / n,
             'confidence (max)' : maximum / n,
@@ -221,8 +222,9 @@ def lost_prediction_test(df, args):
             'score-margin (max)' : sm_max / n,
             'score_margin (add)' : sm_additive / n,
             'score-margin (add,weighted)' : sm_additive_w / n
-        }, ignore_index = True)
+        })
 
+    post_prediction = pd.DataFrame(post_prediction)
     post_prediction.to_json(args.name +'_lost_prediction_analysis.json')
 
 if __name__ == "__main__":
