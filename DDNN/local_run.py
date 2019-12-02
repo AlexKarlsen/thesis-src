@@ -50,8 +50,8 @@ def main(args):
                     'sample' : sample
                 }
                 results.append(msg)
-    log = pd.DataFrame(results)
-    log.to_csv(args.name + '.csv')
+    with open('local/' + args.name +'.json', 'w') as f:
+        json.dump(results, f)
 
 
 if __name__ == "__main__":
