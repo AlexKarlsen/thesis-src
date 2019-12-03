@@ -21,15 +21,15 @@ def measure_model_all_exits(args, model=None):
     else:
         pass
     
-    models = {'resnet' : ResNet(100), 'densenet' : DenseNet(100), 'bdensenet' : bdensenet(100), 'bdensenet' : BDenseNet(100), 'msdnet' : MSDNet(args)}
+    models = {'resnet' : ResNet(100), 'densenet' : DenseNet(100), 'bdensenet' : BDenseNet(100), 'bdensenet' : BDenseNet(100), 'msdnet' : MSDNet(args)}
     flops = []
     params = []
-    input = torch.randn(1, 3, 224, 224)
+    x= torch.randn(1, 3, 224, 224)
 
     stats = {x: {} for x in models}
 
     for model in models:
-        f, p = profile(models[model], inputs=(input,))
+        f, p = profile(models[model], x=(x))
         stats[model]['flops'] = f
         stats[model]['params'] = p
 
@@ -39,48 +39,58 @@ def measure_bdensenet_exits():
     flops = []
     params = []
     bdensenet = BDenseNet(100)
-    input = torch.randn(1, 3, 224, 224)
-    f, p = profile(bdensenet.exit1, inputs=(input, ))
+    x = torch.randn(1, 3, 224, 224)
+    fall, pall = profile(bdensenet, inputs=(x,))
+
+    f, p = profile(bdensenet.exit1, inputs=(x, ))
     flops.append(f)
     params.append(p)
 
-    input = torch.randn(1,256,56,56)
-    f, p = profile(bdensenet.transistion1, inputs=(input, ))
-    flops.append(f)
-    params.append(p)
-
-    input = torch.randn(1,128,14,14)
-    f, p = profile(bdensenet.exit2, inputs=(input, ))
+    _, x = bdensenet.exit1(x)
+    f, p = profile(bdensenet.transistion1, inputs=(x, ))
     flops.append(f)
     params.append(p)
 
 
-    input = torch.randn(1,512,28,28)
-    f, p = profile(bdensenet.transistion2, inputs=(input, ))
+    x= torch.randn(1,128,14,14)
+    f, p = profile(bdensenet.exit2, inputs=(x, ))
     flops.append(f)
     params.append(p)
 
-    input = torch.randn(1,256,14,14)
-    f, p = profile(bdensenet.exit3, inputs=(input, ))
+
+    x= torch.randn(1,512,28,28)
+    f, p = profile(bdensenet.transistion2, inputs=(x, ))
     flops.append(f)
     params.append(p)
 
-    input = torch.randn(1,1024,28,28)
-    f, p = profile(bdensenet.transistion3, inputs=(input, ))
+    x= torch.randn(1,256,14,14)
+    f, p = profile(bdensenet.exit3, inputs=(x, ))
     flops.append(f)
     params.append(p)
 
-    input = torch.randn(1,512,7,7)
-    f, p = profile(bdensenet.exit4, inputs=(input, ))
+    x= torch.randn(1,1024,28,28)
+    f, p = profile(bdensenet.transistion3, inputs=(x, ))
     flops.append(f)
     params.append(p)
 
-    return {
-        'BDenseNet' : {
-            'params': [p for p in params],
-            'flops': [f for f in flops]
-        }
-    }
+    x= torch.randn(1,512,7,7)
+    f, p = profile(bdensenet.exit4, inputs=(x ))
+    flops.append(f)
+    params.append(p)
+
+
+    print(flops, params)
+    print(sum(flops), sum(params))
+    print(fall, pall)
+
+    # print(sum(stats['BDenseNet']['params']))
+    # print(sum(stats['BDenseNet']['flops']))
+    # return {
+    #     'BDenseNet' : {
+    #         'params': [p for p in params],
+    #         'flops': [f for f in flops]
+    #     }
+    # }
 
 if __name__ == "__main__":
     # Training settings
@@ -102,5 +112,5 @@ if __name__ == "__main__":
                         ' (1 means dot\'t use compression) (default: 0.5)')
 
     args = parser.parse_args()
-    stats = measure_bdensenet_exits()
-    print(stats)
+    measure_bdensenet_exits()
+    
