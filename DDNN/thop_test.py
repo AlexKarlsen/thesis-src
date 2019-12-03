@@ -35,6 +35,48 @@ def measure_model_all_exits(args, model=None):
 
     return stats
 
+def measure_bresnet_exits():
+    flops = []
+    params = []
+    model = BResNet(100)
+    x = torch.randn(1, 3, 224, 224)
+    fall, pall = profile(model, inputs=(x,))
+
+
+    
+    f, p = profile(model.conv1, inputs=(x, ))
+    flops.append(f)
+    params.append(p)
+
+    x = model.conv1(x)
+
+    f, p = profile(model.exit1, inputs=(x, ))
+    flops[0] += f
+    params[0] += p
+
+    _, x = model.exit1(x)
+
+
+    f, p = profile(model.exit2, inputs=(x, ))
+    flops.append(f)
+    params.append(p)
+
+    _, x = model.exit2(x)
+
+    f, p = profile(model.exit3, inputs=(x, ))
+    flops.append(f)
+    params.append(p)
+
+    _, x = model.exit3(x)
+
+    f, p = profile(model.exit4, inputs=(x, ))
+    flops.append(f)
+    params.append(p)
+
+    print(flops, params)
+    print(sum(flops), sum(params))
+    print(fall, pall)
+
 def measure_bdensenet_exits():
     flops = []
     params = []
@@ -47,36 +89,41 @@ def measure_bdensenet_exits():
     params.append(p)
 
     _, x = bdensenet.exit1(x)
+
+    
     f, p = profile(bdensenet.transistion1, inputs=(x, ))
     flops.append(f)
     params.append(p)
 
+    x = bdensenet.transistion1(x)
 
-    x= torch.randn(1,128,14,14)
     f, p = profile(bdensenet.exit2, inputs=(x, ))
-    flops.append(f)
-    params.append(p)
+    flops[1] += f
+    params[1] += p
 
-
-    x= torch.randn(1,512,28,28)
+    _, x = bdensenet.exit2(x)
+    
     f, p = profile(bdensenet.transistion2, inputs=(x, ))
     flops.append(f)
     params.append(p)
 
-    x= torch.randn(1,256,14,14)
-    f, p = profile(bdensenet.exit3, inputs=(x, ))
-    flops.append(f)
-    params.append(p)
+    x = bdensenet.transistion2(x)
 
-    x= torch.randn(1,1024,28,28)
+    f, p = profile(bdensenet.exit3, inputs=(x, ))
+    flops[2] += f
+    params[2] += p
+
+    _, x = bdensenet.exit3(x)
+    
     f, p = profile(bdensenet.transistion3, inputs=(x, ))
     flops.append(f)
     params.append(p)
 
-    x= torch.randn(1,512,7,7)
-    f, p = profile(bdensenet.exit4, inputs=(x ))
-    flops.append(f)
-    params.append(p)
+    x = bdensenet.transistion3(x)
+
+    f, p = profile(bdensenet.exit4, inputs=(x, ))
+    flops[3] += f
+    params[3] += p
 
 
     print(flops, params)
@@ -112,5 +159,5 @@ if __name__ == "__main__":
                         ' (1 means dot\'t use compression) (default: 0.5)')
 
     args = parser.parse_args()
-    measure_bdensenet_exits()
+    measure_bresnet_exits()
     

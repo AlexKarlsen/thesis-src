@@ -24,16 +24,27 @@ if __name__ == "__main__":
                         ' (1 means dot\'t use compression) (default: 0.5)')
 
     args = parser.parse_args()
-    msdnet = MSDNet(args)
+    model = MSDNet(args)
 
-    input = torch.randn(1, 3, 224, 224)
+    x = torch.randn(1, 3, 224, 224)
 
     flops = []
     params = []
 
-    f, p = profile(msdnet, inputs=(input, ))
-    flops.append(f)
-    params.append(p)
+    fall, pall = profile(model, inputs=(x, ))
+    #flops.append(f)
+    #params.append(p)
+
+    for i, (b, c) in enumerate(zip(model.blocks, model.classifier)):
+        f, p = profile(b, inputs=(x, ))
+        flops.append(f)
+        params.append(p)
+        x = b(x)
+        f, p = profile(c, inputs=(x, ))
+        flops[i] += f
+        params[i] += p
 
 
-    print('MSDNet: Flops = {}\nParameters = {}'.format(flops[0], params[0]))
+    print(flops, params)
+    print(sum(flops), sum(params))
+    print(fall, pall)
