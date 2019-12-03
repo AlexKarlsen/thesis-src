@@ -26,6 +26,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     model = MSDNet(args)
 
+
     x = torch.randn(1, 3, 224, 224)
 
     flops = []
