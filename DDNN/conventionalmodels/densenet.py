@@ -21,13 +21,13 @@ class DenseNet(nn.Module):
 
     def forward(self, x):
         batch = x.shape[0]
-       # time_start = perf_counter()
+        time_start = perf_counter()
         x = self.model(x)
         x = F.adaptive_avg_pool2d(x, (1, 1))
         x = torch.flatten(x, 1)
         pred = self.clf(x.view(batch,-1))
-       # time_end = perf_counter()
-        return pred#, time_end - time_start
+        time_end = perf_counter()
+        return pred, time_end - time_start
 
 if __name__ == "__main__":
     import PIL
