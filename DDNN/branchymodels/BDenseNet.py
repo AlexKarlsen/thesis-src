@@ -36,30 +36,30 @@ class BDenseNet(nn.Module):
 
     def forward(self, x):
         predictions = []
-        #timings = []
+        timings = []
 
-        #time_start = perf_counter()
+        time_start = perf_counter()
 
         p, x = self.exit1(x)
-       # timings.append((perf_counter()-time_start)*1000)
+        timings.append((perf_counter()-time_start)*1000)
         predictions.append(p)
         x = self.transistion1(x)
 
         p, x = self.exit2(x)
-        #timings.append((perf_counter()-time_start)*1000)
+        timings.append((perf_counter()-time_start)*1000)
         predictions.append(p)
         x = self.transistion2(x)
         
         p, x = self.exit3(x)
-        #timings.append((perf_counter()-time_start)*1000)
+        timings.append((perf_counter()-time_start)*1000)
         predictions.append(p)
         x = self.transistion3(x)
 
         p = self.exit4(x)
-        #timings.append((perf_counter()-time_start)*1000)
+        timings.append((perf_counter()-time_start)*1000)
         predictions.append(p)
         
-        return predictions#, timings
+        return predictions, timings
 
 class Exit4(nn.Module):
     def __init__(self, denseblock4, norm5, out_channels):
