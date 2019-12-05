@@ -83,6 +83,7 @@ def main(args):
             if data == False:
                 print('Done receiving')
                 return
+            pred_timer = 0
             time_start = perf_counter()
             # set the edge mode
             if args.edge_setting == 'collaborative':
@@ -115,15 +116,16 @@ def main(args):
             #print('preprocess time {}'.format(preprocess_time))
 
             # run the test
+            time_start = perf_counter()
             for ex in exits:
                 # predict
                 myPredictor.counter = ex
-                time_start = perf_counter()
+                
                 pred = next(myPredictor)
                 pred = pred.cpu()
                 score = F.softmax(pred, dim=1)
                 prob, pred = torch.topk(score, k=5)
-                prob, pred = prob.numpy()[0].tolist(), pred.numpy()[0].tolist()
+                prob, pred = prob.numpy()[0].tolist(), pred.numpy()[0].tolist() 
                 prediction_time = (perf_counter() - time_start)*1000 
                 # create msg
                 msg = {
