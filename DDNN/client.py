@@ -114,8 +114,6 @@ def main(args):
             c.send(data)
             time_sent = perf_counter()
             
-        
-
         for _ in range(nExits):
             pred = c.receive()
             result['sample'] = sample
