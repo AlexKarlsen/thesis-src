@@ -116,18 +116,23 @@ def ScoreMargin(_labels, _scores, selection='additive', weights = None):
     best = (labellist[idx], scorelist[idx])
     return best
 
-def delay_threshold_test(df, n_classes, args):
+def delay_threshold_test(df, n_classes, platform, model_type):
     post_prediction = pd.DataFrame()
-    for delay_threshold in tqdm(np.arange(0, 30, 2.5)):
+    for delay_threshold in tqdm(np.arange(3, 270,1)):
         n = conventional = maximum = addition = addition_w = missed = sm_additive = sm_additive_w = sm_max = 0
-        if args.model_type == 'msdnet':
+        if model_type == 'msdnet':
             n_exits = 5
-        else:
+        elif model_type == 'b-resnet' or model_type == 'b-densenet':
             n_exits = 4
+        else:
+            n_exits = 1
         which_exits = np.zeros(n_exits)
         for i, data in df.groupby(['sample']):
-            # find predictions within time fram
-            exits = len([time for time in data['overall time'].tolist() if time < delay_threshold])
+            # find predictions within time frame
+
+            timings = data['time'].tolist()
+            cum_timings = np.cumsum(timings)
+            exits = len([time for time in cum_timings if time < delay_threshold])
             
             n += 1
             if exits != 0:
@@ -135,27 +140,27 @@ def delay_threshold_test(df, n_classes, args):
                 which_exits[exits-1] += 1
 
                 # filter predictions within time frame
-                labels, scores = np.array(data.prediction.tolist()[:exits]), np.array(data.scores.tolist()[:exits])
+                #labels, scores = np.array(data.prediction.tolist()[:exits]), np.array(data.scores.tolist()[:exits])
 
                 #score_additive_w = ScoreMargin(labels, scores, 'additive', args.weights)
                 #score_additive = ScoreMargin(labels, scores, 'additive')
-                score_max = ScoreMargin(labels, scores, 'max')
+                #score_max = ScoreMargin(labels, scores, 'max')
 
                 #labels, scores = MultiHotEncode(labels,scores)
-                addtest = Confidence(labels, scores, n_classes, selection='additive')
-                addtest_w = Confidence(labels, scores, n_classes, selection='additive', weights=args.weights)
+                #addtest = Confidence(labels, scores, n_classes, selection='additive')
+                #addtest_w = Confidence(labels, scores, n_classes, selection='additive', weights=args.weights)
                 
                 
-                maxtest = Confidence(labels, scores, n_classes, selection='max')
+                #maxtest = Confidence(labels, scores, n_classes, selection='max')
                 target = data.target.tolist()
 
-                addition_w +=  (addtest_w[0]== target[0])
-                addition += (addtest[0]==target[0])
-                maximum += (maxtest[0] == target[0])
+                #addition_w +=  (addtest_w[0]== target[0])
+                #addition += (addtest[0]==target[0])
+                #maximum += (maxtest[0] == target[0])
                 conventional += (target[0] == data.prediction.tolist()[exits-1][0])
                 #sm_additive_w += (target[0] == score_additive_w[0])
                 #sm_additive += (target[0] == score_additive[0])
-                sm_max += (target[0]==score_max[0])
+                #sm_max += (target[0]==score_max[0])
             else:
                 missed +=1
 
@@ -166,10 +171,10 @@ def delay_threshold_test(df, n_classes, args):
                 'N': n,
                 'missed': missed,
                 'latest': conventional / n,
-                'confidence (max)' : maximum / n,
-                'confidence (add)' : addition / n,
-                'confidence (add,weighted)' : addition_w / n,
-                'score-margin (max)' : sm_max / n,
+                #'confidence (max)' : maximum / n,
+                #'confidence (add)' : addition / n,
+                #'confidence (add,weighted)' : addition_w / n,
+                #'score-margin (max)' : sm_max / n,
                 #'score_margin (add)' : sm_additive / n,
                 #'score-margin (add,weighted)' : sm_additive_w / n
             }, ignore_index = True)
@@ -180,7 +185,7 @@ def delay_threshold_test(df, n_classes, args):
             }, ignore_index = True)
 
     print(post_prediction)
-    post_prediction.to_json('edge_test/'+ args.name + '_analysis2.json')
+    post_prediction.to_json('local/' + platform + '_local_' + model_type + '_analysis.json')
 
 def lost_prediction_test(df, args):
     
@@ -231,21 +236,35 @@ def lost_prediction_test(df, args):
     post_prediction = pd.DataFrame(post_prediction)
     post_prediction.to_json(args.name +'_lost_prediction_analysis.json')
 
+def main(platform, model_type, test):
+    with open('local/' + platform + '_local_' + model_type + '.json', 'r') as json_file:
+        data = json.load(json_file)
+
+    df = pd.DataFrame()
+    df = json_normalize(data,)
+
+    if test == 'delay-threshold':
+        delay_threshold_test(df,  100, platform, model_type)
+    elif args.test == 'lost-prediction':
+        lost_prediction_test(df, args)
+    else:
+        raise Exception('test must be specified')
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Analyze edge offloading results')
-    parser.add_argument('--name', default='msdnet-local3')
+    parser.add_argument('--platform', default='gpu')
     parser.add_argument('--test', default='delay-threshold'),
-    parser.add_argument('--model-type', default='msdnet'),
+    parser.add_argument('--model-type', default='b-resnet'),
     parser.add_argument('--weights', default=[1,1.2,1.4,1.6,1.6])
     args = parser.parse_args()
-    with open('edge_test/' + args.name + '.json', 'r') as json_file:
+    with open('local/' + args.platform + '_local_' + args.model_type + '.json', 'r') as json_file:
         data = json.load(json_file)
 
     df = pd.DataFrame()
     df = json_normalize(data,)
 
     if args.test == 'delay-threshold':
-        delay_threshold_test(df,  100, args)
+        delay_threshold_test(df,  100, args.platform, args.model_type)
     elif args.test == 'lost-prediction':
         lost_prediction_test(df, args)
     else:
