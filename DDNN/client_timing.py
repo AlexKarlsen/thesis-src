@@ -112,33 +112,18 @@ def main(args):
         else:
             time_start = perf_counter()
             c.send(data)
-            time_sent = perf_counter()
+            #time_sent = perf_counter()
             
         for _ in range(nExits):
             pred = c.receive()
             result['sample'] = sample
             result['exit'] = pred['exit']
-            result['prediction'] = pred['prediction']
-            result['scores'] = pred['confidence']
-            result['target'] = target.view(-1).item()
-            result['overall time'] = (perf_counter() - time_start) * 1000
-            result['prediction time'] = pred['prediction time']
-            result['tx time'] = (time_sent-time_start)*1000
-            #result['rx time'] = pred['rx-time']
-            #result['preprocess time'] = pred['preprocess time']
-            result['correct'] = (pred['prediction'][0]==result['target'])
-            try:
-                result['index_top5'] = pred['prediction'].index(result['target'])
-            except ValueError:
-                result['index_top5'] = -1
-
-            if args.log_to_console:
-                print(result)
+            result['time'] = (perf_counter() - time_start) * 1000
             
             results.append(result.copy())
 
         
-    with open('edge_test/' +args.name +'.json', 'w') as f:
+    with open('edge_test/' +args.name +'_timing.json', 'w') as f:
         json.dump(results, f)
     #log.to_csv(args.name + '.csv')
 

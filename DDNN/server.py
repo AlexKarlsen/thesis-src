@@ -75,16 +75,12 @@ def main(args):
 
         # while data is being received
         while True:
-            time_start = perf_counter()
             data = s.receive(connection, args.buffer_size)
-            rx_time = (perf_counter() - time_start)*1000
             
             # stop when flag is sent
             if data == False:
                 print('Done receiving')
                 return
-            pred_timer = 0
-            time_start = perf_counter()
             # set the edge mode
             if args.edge_setting == 'collaborative':
                 #data = np.frombuffer(data, dtype='float32')
@@ -111,7 +107,6 @@ def main(args):
     
             myPredictor.data = data
 
-            preprocess_time =( perf_counter() - time_start)*1000
 
             #print('preprocess time {}'.format(preprocess_time))
 
@@ -133,8 +128,8 @@ def main(args):
                     'prediction': pred,
                     'confidence': prob,
                     'prediction time': prediction_time,
-                    'preprocess time': preprocess_time,
-                    'rx-time': rx_time
+                    #'preprocess time': preprocess_time,
+                    #'rx-time': rx_time
                 }
 
                 #print('prediction time: {}'.format(time_end-time_start))
