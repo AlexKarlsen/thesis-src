@@ -48,13 +48,15 @@ def main(args):
     connection = s.await_connection()
 
         # while data is being received
+    i = 0
     while True:
         data = s.receive(connection, args.buffer_size)
         
         if data == False:
             print('Done receiving')
             return
-        
+        i += 1
+        print(1)
         nExits = 5 if args.model_type == 'msdnet' else 4
         # set range of exits
         for ex in range(nExits):
