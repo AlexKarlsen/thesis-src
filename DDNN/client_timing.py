@@ -114,13 +114,12 @@ def main(args):
             c.send(data)
             #time_sent = perf_counter()
             
-        for _ in range(nExits):
-            pred = c.receive()
-            result['sample'] = sample
-            result['exit'] = pred['exit']
-            result['time'] = (perf_counter() - time_start) * 1000
-            
-            results.append(result.copy())
+        
+        result['sample'] = sample
+        #result['exit'] = pred['exit']
+        result['time'] = (perf_counter() - time_start) * 1000
+        
+        results.append(result.copy())
 
         
     with open('edge_test/' +args.name +'_timing.json', 'w') as f:

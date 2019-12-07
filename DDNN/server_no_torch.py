@@ -47,36 +47,31 @@ def main(args):
     s.start(args.host, args.port, args.buffer_size)
     connection = s.await_connection()
 
-        # while data is being received
-    i = 0
     while True:
         data = s.receive(connection, args.buffer_size)
-        
+        # set the number of exits
+        nExits = 4 if args.model_type is not 'msdnet' else 5
+        # set range of exits
         if data == False:
             print('Done receiving')
             return
-        i += 1
-        print(1)
-        nExits = 5 if args.model_type == 'msdnet' else 4
-        # set range of exits
-        for ex in range(nExits):
-            # create msg
-            msg = {
-                'exit': int(ex),
-                'prediction': [0, 65, 10, 88, 92],
-                'confidence': [0.9997285008430481, 4.163753692409955e-05, 3.712219404405914e-05, 3.569274485926144e-05, 2.643913285282906e-05],
-                'prediction time': 596.7068000000069,
-                'preprocess time': 596.7068000000069,
-                'rx-time': 596.7068000000069
-            }
+        
+        msg = {
+            'exit': 9,
+            'prediction': [0, 65, 10, 88, 92],
+            'confidence': [0.9997285008430481, 4.163753692409955e-05, 3.712219404405914e-05, 3.569274485926144e-05, 2.643913285282906e-05],
+            'prediction time': 596.7068000000069,
+            'preprocess time': 596.7068000000069,
+            'rx-time': 596.7068000000069
+        }
 
-                #print('prediction time: {}'.format(time_end-time_start))
+            #print('prediction time: {}'.format(time_end-time_start))
 
-            # send intermediate results ###### maybe threading would help
+        # send intermediate results ###### maybe threading would help
 
-            #threading._start_new_thread(s.send,(connection, msg))
-            # unthreaded
-            s.send(connection, msg)
+        #threading._start_new_thread(s.send,(connection, msg))
+        # unthreaded
+        s.send(connection, msg)
 
     
 if __name__ == "__main__":
@@ -87,6 +82,6 @@ if __name__ == "__main__":
     parser.add_argument('--host', default='127.0.0.1')
     parser.add_argument('--port', default=23456)
     parser.add_argument('--buffer-size', default=4096)
-    parser.add_argument('--model-type', default='msdnet')
+    parser.add_argument('--model-type', default='b-resnet')
     args = parser.parse_args()
     main(args)
