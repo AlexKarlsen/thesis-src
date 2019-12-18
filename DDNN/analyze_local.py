@@ -118,7 +118,7 @@ def ScoreMargin(_labels, _scores, selection='additive', weights = None):
 
 def delay_threshold_test(df, n_classes, platform, model_type):
     post_prediction = pd.DataFrame()
-    for delay_threshold in tqdm(np.arange(3, 270,1)):
+    for delay_threshold in tqdm(np.arange(0, 451,1)):
         n = conventional = maximum = addition = addition_w = missed = sm_additive = sm_additive_w = sm_max = 0
         if model_type == 'msdnet':
             n_exits = 5
@@ -185,7 +185,7 @@ def delay_threshold_test(df, n_classes, platform, model_type):
             }, ignore_index = True)
 
     print(post_prediction)
-    post_prediction.to_json('local/' + platform + '_local_' + model_type + '_analysis.json')
+    post_prediction.to_json('edge_test/' + platform + '_merge_' + model_type + '_analysis.json')
 
 def lost_prediction_test(df, args):
     
@@ -237,7 +237,7 @@ def lost_prediction_test(df, args):
     post_prediction.to_json(args.name +'_lost_prediction_analysis.json')
 
 def main(platform, model_type, test):
-    with open('local/' + platform + '_local_' + model_type + '.json', 'r') as json_file:
+    with open('local/' + platform + '_' + model_type + '_offload.json', 'r') as json_file:
         data = json.load(json_file)
 
     df = pd.DataFrame()

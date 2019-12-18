@@ -13,8 +13,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     models = ['resnet', 'densenet', 'b-resnet', 'b-densenet', 'msdnet']
-    platforms = ['gpu', 'jetson', 'nuc']
+    #platforms = ['gpu', 'jetson', 'nuc']
 
-    for platform in platforms:
-        for model in models[:2]:
-            analyze_local.main(platform, model, args.test)
+    #for platform in platforms:
+    for model in models:
+        analyze_local.main('gpu', model, args.test)

@@ -37,8 +37,9 @@ class client():
         buf = io.BytesIO()
         data.save(buf, format='JPEG')
         byte_im = buf.getvalue()
-        self.sock.sendall(len(byte_im).to_bytes(4, byteorder='big'))
-        self.sock.sendall(byte_im)
+        return len(byte_im)
+        #self.sock.sendall(len(byte_im).to_bytes(4, byteorder='big'))
+        #self.sock.sendall(byte_im)
 
     def sendIntermediateFeatures(self, data, compress=False):
         if compress:
@@ -67,7 +68,7 @@ def main(args):
     _, test_loader = datasets.get_dataset(args.dataset_root, args.dataset, args.batch_size, args.n_classes, device)
 
     c = client()
-    c.connect(args.host, args.port)
+    #c.connect(args.host, args.port)
 
     results = []
     nExits = 4 if args.model_type is not 'msdnet' else 5
@@ -76,7 +77,7 @@ def main(args):
         _, test_loader = datasets.get_dataset(args.dataset_root, 'miniimagenet-test-only', args.batch_size, args.n_classes, device)
     else:
         _, test_loader = datasets.get_dataset(args.dataset_root, args.dataset, args.batch_size, args.n_classes, device)
-
+    data_size = 0
     for sample, (data, target) in enumerate(tqdm(test_loader, leave=False, unit='batch')):
 
         result = {}
@@ -111,33 +112,33 @@ def main(args):
                 #c.sendIntermediateFeatures(myPredictor.data)
         else:
             time_start = perf_counter()
-            c.send(data)
+            data_size += c.send(data)
             time_sent = perf_counter()
             
-        for _ in range(nExits):
-            pred = c.receive()
-            result['sample'] = sample
-            result['exit'] = pred['exit']
-            result['prediction'] = pred['prediction']
-            result['scores'] = pred['confidence']
-            result['target'] = target.view(-1).item()
-            result['overall time'] = (perf_counter() - time_start) * 1000
-            result['prediction time'] = pred['prediction time']
-            result['tx time'] = (time_sent-time_start)*1000
-            #result['rx time'] = pred['rx-time']
-            #result['preprocess time'] = pred['preprocess time']
-            result['correct'] = (pred['prediction'][0]==result['target'])
-            try:
-                result['index_top5'] = pred['prediction'].index(result['target'])
-            except ValueError:
-                result['index_top5'] = -1
+        # for _ in range(nExits):
+        #     pred = c.receive()
+        #     result['sample'] = sample
+        #     result['exit'] = pred['exit']
+        #     result['prediction'] = pred['prediction']
+        #     result['scores'] = pred['confidence']
+        #     result['target'] = target.view(-1).item()
+        #     result['overall time'] = (perf_counter() - time_start) * 1000
+        #     result['prediction time'] = pred['prediction time']
+        #     result['tx time'] = (time_sent-time_start)*1000
+        #     #result['rx time'] = pred['rx-time']
+        #     #result['preprocess time'] = pred['preprocess time']
+        #     result['correct'] = (pred['prediction'][0]==result['target'])
+        #     try:
+        #         result['index_top5'] = pred['prediction'].index(result['target'])
+        #     except ValueError:
+        #         result['index_top5'] = -1
 
-            if args.log_to_console:
-                print(result)
+        #     if args.log_to_console:
+        #         print(result)
             
-            results.append(result.copy())
+        #     results.append(result.copy())
 
-        
+    print(data_size)    
     with open('edge_test/' +args.name +'.json', 'w') as f:
         json.dump(results, f)
     #log.to_csv(args.name + '.csv')
